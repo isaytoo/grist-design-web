@@ -4,7 +4,8 @@
 >
 > **EN** — Visual drag-and-drop web page builder embedded in Grist. Build HTML/CSS/JS pages, save them in your Grist document, and export a ready-to-use Grist widget.
 
-🔗 **Widget URL** : `https://grist-design-web.vercel.app`
+🔗 **Widget URL (Vercel)** : `https://grist-design-web.vercel.app`
+🔗 **Widget URL (GitHub Pages)** : `https://isaytoo.github.io/grist-design-web/`
 📦 **GitHub** : [isaytoo/grist-design-web](https://github.com/isaytoo/grist-design-web)
 
 ---
@@ -28,7 +29,7 @@ Grist Design Web est un widget Grist basé sur **GrapesJS** qui transforme votre
 ### Intégration dans Grist (en tant que widget)
 1. Ouvrez votre document Grist.
 2. Ajoutez une vue **« Custom » / « Widget personnalisé »**.
-3. Dans **URL personnalisée**, collez : `https://grist-design-web.vercel.app`
+3. Dans **URL personnalisée**, collez : `https://grist-design-web.vercel.app` *(ou `https://isaytoo.github.io/grist-design-web/`)*
 4. Réglez **Niveau d'accès** sur **« Accès complet au document »** (`full`) — requis pour créer/lire les tables.
 5. Le widget crée automatiquement les tables nécessaires au premier lancement.
 
@@ -73,7 +74,7 @@ Grist Design Web is a Grist widget powered by **GrapesJS** that turns your docum
 ### Integrate into Grist (as a widget)
 1. Open your Grist document.
 2. Add a **Custom widget** view.
-3. In **Custom URL**, paste: `https://grist-design-web.vercel.app`
+3. In **Custom URL**, paste: `https://grist-design-web.vercel.app` *(or `https://isaytoo.github.io/grist-design-web/`)*
 4. Set **Access level** to **Full document access** (`full`) — required to create/read tables.
 5. The widget auto-creates the required tables on first launch.
 
