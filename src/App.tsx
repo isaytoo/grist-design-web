@@ -34,6 +34,15 @@ export default function App() {
     editorRef.current = editor;
     registerCustomBlocks(editor);
 
+    // grapesjs-preset-webpage calls Panels().reset([...]) at load, re-injecting its own
+    // toolbars ('options' + 'views' with open-sm/open-tm/open-layers/open-blocks). These
+    // override our `panels: { defaults: [] }` config, are absolutely positioned at the
+    // top-right (overlapping/truncating our custom .dw-right-panel), and their toggle
+    // buttons (paintbrush = open-sm) target empty internal panels because the real
+    // managers are mounted to our #styles-panel/#traits-panel/#layers-panel via appendTo.
+    // We use a fully custom React UI, so clear the preset's redundant panels.
+    editor.Panels.getPanels().reset();
+
     const ok = await initGrist();
     setInGrist(ok);
     if (ok) await ensureTables();
