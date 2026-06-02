@@ -6,6 +6,7 @@ import presetWebpage from 'grapesjs-preset-webpage';
 import blocksBasic from 'grapesjs-blocks-basic';
 import pluginForms from 'grapesjs-plugin-forms';
 import { registerCustomBlocks } from './blocks';
+import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
 import { initGrist, ensureTables, loadPages, savePage, deletePage } from './grist';
 import type { SavedPage } from './grist';
@@ -92,6 +93,10 @@ export default function App() {
   const switchLang = (l: Lang) => {
     setLang(l);
     setLangState(l);
+    const editor = editorRef.current;
+    if (editor) {
+      editor.I18n.setLocale(l === 'fr' ? 'fr' : 'en');
+    }
   };
 
   const handleDeviceChange = (device: string) => {
@@ -143,6 +148,11 @@ export default function App() {
           options={{
             height: '100%',
             storageManager: false,
+            i18n: {
+              locale: getLang() === 'fr' ? 'fr' : 'en',
+              detectLocale: false,
+              messages: { fr: gjsFrench },
+            },
             deviceManager: {
               devices: [
                 { name: 'Desktop', width: '' },
