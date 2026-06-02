@@ -15,6 +15,8 @@ export function getExportData(editor: Editor) {
   <title>Page</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"><\/script>
   <style>
+* { box-sizing: border-box; }
+body { margin: 0; }
 ${css}
   </style>
 </head>
