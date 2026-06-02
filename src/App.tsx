@@ -217,6 +217,12 @@ export default function App() {
         </GjsEditor>
       </div>
 
+      {/* Footer */}
+      <footer className="dw-footer">
+        <span>© 2026 Said Hamadou (isaytoo)</span>
+        <a href="https://gristup.fr" target="_blank" rel="noopener noreferrer">gristup.fr</a>
+      </footer>
+
       {/* Toast */}
       {toast && <div className="dw-toast">{toast}</div>}
 
