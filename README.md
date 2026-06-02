@@ -1,73 +1,106 @@
-# React + TypeScript + Vite
+# 🎨 Grist Design Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **FR** — Constructeur de pages web visuel (glisser-déposer) intégré à Grist. Créez des pages HTML/CSS/JS, sauvegardez-les dans votre document Grist, et exportez un widget Grist prêt à l'emploi.
+>
+> **EN** — Visual drag-and-drop web page builder embedded in Grist. Build HTML/CSS/JS pages, save them in your Grist document, and export a ready-to-use Grist widget.
 
-Currently, two official plugins are available:
+🔗 **Widget URL** : `https://grist-design-web.vercel.app`
+📦 **GitHub** : [isaytoo/grist-design-web](https://github.com/isaytoo/grist-design-web)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🇫🇷 Français
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Présentation
+Grist Design Web est un widget Grist basé sur **GrapesJS** qui transforme votre document en éditeur de pages visuel. Vous composez une page par glisser-déposer (sections Hero, CTA, Features, Pricing, FAQ, Navbar, Footer, formulaires…), vous ajustez les styles, et le résultat est :
+- **sauvegardé dans Grist** (table `Design_Pages`) ;
+- **exportable en ZIP** (`index.html` + `widget.js`) directement réutilisable comme widget Grist.
 
-## Expanding the ESLint configuration
+### Fonctionnalités
+- **Blocs prêts à l'emploi** : sections, navigation, formulaires, texte, images, colonnes.
+- **Panneaux** : Styles (CSS visuel), Propriétés (attributs), Calques (arborescence).
+- **Aperçus responsive** : Desktop / Tablette / Mobile.
+- **Annuler / Rétablir**, **Aperçu**, **Plein écran**.
+- **Multilingue** : interface FR / EN.
+- **Sauvegarde Grist** + **chargement** des pages enregistrées.
+- **Export ZIP** fidèle à la mise en page (styles inline + media queries + reset CSS).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Intégration dans Grist (en tant que widget)
+1. Ouvrez votre document Grist.
+2. Ajoutez une vue **« Custom » / « Widget personnalisé »**.
+3. Dans **URL personnalisée**, collez : `https://grist-design-web.vercel.app`
+4. Réglez **Niveau d'accès** sur **« Accès complet au document »** (`full`) — requis pour créer/lire les tables.
+5. Le widget crée automatiquement les tables nécessaires au premier lancement.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Tables créées automatiquement
+| Table | Colonnes |
+|-------|----------|
+| `Design_Pages` | `Page_Name`, `HTML_Content`, `CSS_Content`, `JS_Content`, `GrapesJS_Data`, `Created_At`, `Updated_At` |
+| `Design_Assets` | `Asset_Name`, `Asset_URL`, `Asset_Type` |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Réutiliser une page exportée comme widget
+1. Cliquez sur **📦 Exporter ZIP** : vous obtenez `index.html` + `widget.js`.
+2. Hébergez ces deux fichiers (Vercel, Netlify, GitHub Pages…).
+3. Dans Grist, ajoutez un widget personnalisé pointant vers l'`index.html` hébergé.
+4. Le fichier inclut déjà l'API Grist (`grist-plugin-api.js`) et `grist.ready({ requiredAccess: 'full' })`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Développement local
+```bash
+npm install
+npm run dev      # serveur de dev (http://localhost:5173)
+npm run build    # build de production (dossier dist/)
+npm run preview  # prévisualiser le build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🇬🇧 English
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Overview
+Grist Design Web is a Grist widget powered by **GrapesJS** that turns your document into a visual page editor. Compose a page by drag-and-drop (Hero, CTA, Features, Pricing, FAQ, Navbar, Footer, forms…), tweak the styles, and the result is:
+- **saved into Grist** (`Design_Pages` table);
+- **exportable as a ZIP** (`index.html` + `widget.js`) directly reusable as a Grist widget.
+
+### Features
+- **Ready-made blocks**: sections, navigation, forms, text, images, columns.
+- **Panels**: Styles (visual CSS), Properties (attributes), Layers (tree).
+- **Responsive previews**: Desktop / Tablet / Mobile.
+- **Undo / Redo**, **Preview**, **Fullscreen**.
+- **Bilingual** UI: FR / EN.
+- **Save to Grist** + **load** stored pages.
+- **ZIP export** faithful to the layout (inline styles + media queries + CSS reset).
+
+### Integrate into Grist (as a widget)
+1. Open your Grist document.
+2. Add a **Custom widget** view.
+3. In **Custom URL**, paste: `https://grist-design-web.vercel.app`
+4. Set **Access level** to **Full document access** (`full`) — required to create/read tables.
+5. The widget auto-creates the required tables on first launch.
+
+### Auto-created tables
+| Table | Columns |
+|-------|---------|
+| `Design_Pages` | `Page_Name`, `HTML_Content`, `CSS_Content`, `JS_Content`, `GrapesJS_Data`, `Created_At`, `Updated_At` |
+| `Design_Assets` | `Asset_Name`, `Asset_URL`, `Asset_Type` |
+
+### Reuse an exported page as a widget
+1. Click **📦 Export ZIP**: you get `index.html` + `widget.js`.
+2. Host both files (Vercel, Netlify, GitHub Pages…).
+3. In Grist, add a custom widget pointing to the hosted `index.html`.
+4. The file already includes the Grist API (`grist-plugin-api.js`) and `grist.ready({ requiredAccess: 'full' })`.
+
+### Local development
+```bash
+npm install
+npm run dev      # dev server (http://localhost:5173)
+npm run build    # production build (dist/ folder)
+npm run preview  # preview the build
 ```
+
+---
+
+## 🛠️ Tech stack
+React 19 · TypeScript · Vite · GrapesJS (`@grapesjs/react`) · `grapesjs-preset-webpage` · `grapesjs-blocks-basic` · `grapesjs-plugin-forms` · JSZip · FileSaver
+
+## 📄 License
+© 2026 Said Hamadou (isaytoo) — [gristup.fr](https://gristup.fr)
