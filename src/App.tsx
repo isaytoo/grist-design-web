@@ -219,7 +219,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="dw-footer">
-        <span>© 2026 Said Hamadou (isaytoo)</span>
+        <span>© 2026 isaytoo</span>
         <a href="https://gristup.fr" target="_blank" rel="noopener noreferrer">gristup.fr</a>
       </footer>
 
