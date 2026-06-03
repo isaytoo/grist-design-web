@@ -153,12 +153,14 @@ export default function App() {
                 { name: 'Extra', open: false, properties: ['opacity', 'transition', 'transform', 'cursor', 'overflow'] },
               ],
             },
-            plugins: [presetWebpage, blocksBasic, pluginForms],
-            pluginsOpts: {
-              [presetWebpage as unknown as string]: {},
-              [blocksBasic as unknown as string]: { flexGrid: true },
-              [pluginForms as unknown as string]: {},
-            },
+            plugins: [
+              presetWebpage,
+              // Pass flexGrid directly: keying pluginsOpts by the function ref does not
+              // match, so blocks-basic would otherwise fall back to display:table-cell
+              // columns (which baseline-align text to the bottom of a tall image cell).
+              (editor: Editor) => blocksBasic(editor, { flexGrid: true }),
+              pluginForms,
+            ],
           }}
         />
       </div>
