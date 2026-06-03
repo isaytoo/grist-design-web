@@ -8,6 +8,7 @@ import pluginForms from 'grapesjs-plugin-forms';
 import { registerCustomBlocks } from './blocks';
 import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
+import { addImagesAsBase64 } from './assets';
 import { initGrist, ensureTables, loadPages, savePage, deletePage } from './grist';
 import type { SavedPage } from './grist';
 import { t, setLang, getLang } from './i18n';
@@ -32,6 +33,19 @@ export default function App() {
   const onEditor = useCallback(async (editor: Editor) => {
     editorRef.current = editor;
     registerCustomBlocks(editor);
+
+    // Intercept image uploads → convert to base64 data URIs
+    editor.on('asset:upload:start', () => {});
+    editor.on('asset:upload:response', () => {});
+
+    const amConfig = editor.AssetManager.getConfig();
+    (amConfig as Record<string, unknown>).uploadFile = async (ev: DragEvent | Event) => {
+      const files = (ev as DragEvent).dataTransfer?.files
+        || ((ev.target as HTMLInputElement)?.files);
+      if (files) {
+        await addImagesAsBase64(files, editor, (msg) => showToast(msg));
+      }
+    };
 
     const ok = await initGrist();
     setInGrist(ok);
