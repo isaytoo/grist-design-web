@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import type { Editor } from 'grapesjs';
-import GjsEditor, { Canvas } from '@grapesjs/react';
+import GjsEditor from '@grapesjs/react';
 import presetWebpage from 'grapesjs-preset-webpage';
 import blocksBasic from 'grapesjs-blocks-basic';
 import pluginForms from 'grapesjs-plugin-forms';
@@ -23,7 +23,6 @@ export default function App() {
   const [showPagesModal, setShowPagesModal] = useState(false);
   const [savedPages, setSavedPages] = useState<SavedPage[]>([]);
   const [inGrist, setInGrist] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'styles' | 'traits' | 'layers'>('styles');
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -33,15 +32,6 @@ export default function App() {
   const onEditor = useCallback(async (editor: Editor) => {
     editorRef.current = editor;
     registerCustomBlocks(editor);
-
-    // grapesjs-preset-webpage calls Panels().reset([...]) at load, re-injecting its own
-    // toolbars ('options' + 'views' with open-sm/open-tm/open-layers/open-blocks). These
-    // override our `panels: { defaults: [] }` config, are absolutely positioned at the
-    // top-right (overlapping/truncating our custom .dw-right-panel), and their toggle
-    // buttons (paintbrush = open-sm) target empty internal panels because the real
-    // managers are mounted to our #styles-panel/#traits-panel/#layers-panel via appendTo.
-    // We use a fully custom React UI, so clear the preset's redundant panels.
-    editor.Panels.getPanels().reset();
 
     const ok = await initGrist();
     setInGrist(ok);
@@ -108,10 +98,6 @@ export default function App() {
     }
   };
 
-  const handleDeviceChange = (device: string) => {
-    editorRef.current?.setDevice(device);
-  };
-
   // suppress unused var warning
   void lang;
 
@@ -127,17 +113,6 @@ export default function App() {
             onChange={e => setPageName(e.target.value)}
             placeholder={t('pageName')}
           />
-        </div>
-        <div className="dw-header-center">
-          <button className="dw-tool-btn" onClick={() => editorRef.current?.runCommand('core:undo')} title={t('undo')}>↩️</button>
-          <button className="dw-tool-btn" onClick={() => editorRef.current?.runCommand('core:redo')} title={t('redo')}>↪️</button>
-          <span className="dw-sep" />
-          <button className="dw-tool-btn" onClick={() => handleDeviceChange('Desktop')} title={t('desktop')}>🖥️</button>
-          <button className="dw-tool-btn" onClick={() => handleDeviceChange('Tablet')} title={t('tablet')}>📱</button>
-          <button className="dw-tool-btn" onClick={() => handleDeviceChange('Mobile portrait')} title={t('mobile')}>📲</button>
-          <span className="dw-sep" />
-          <button className="dw-tool-btn" onClick={() => editorRef.current?.runCommand('preview')} title={t('preview')}>👁️</button>
-          <button className="dw-tool-btn" onClick={() => editorRef.current?.runCommand('fullscreen')} title={t('fullscreen')}>⛶</button>
         </div>
         <div className="dw-header-right">
           {inGrist && <button className="dw-btn dw-btn-secondary" onClick={handleLoad}>📂 {t('loadFromGrist')}</button>}
@@ -169,11 +144,7 @@ export default function App() {
                 { name: 'Mobile portrait', width: '375px', widthMedia: '480px' },
               ],
             },
-            panels: { defaults: [] },
-            blockManager: { appendTo: '#blocks-panel' },
-            layerManager: { appendTo: '#layers-panel' },
             styleManager: {
-              appendTo: '#styles-panel',
               sectors: [
                 { name: 'General', open: true, properties: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom'] },
                 { name: 'Dimension', open: true, properties: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'] },
@@ -182,8 +153,6 @@ export default function App() {
                 { name: 'Extra', open: false, properties: ['opacity', 'transition', 'transform', 'cursor', 'overflow'] },
               ],
             },
-            selectorManager: { appendTo: '#styles-panel' },
-            traitManager: { appendTo: '#traits-panel' },
             plugins: [presetWebpage, blocksBasic, pluginForms],
             pluginsOpts: {
               [presetWebpage as unknown as string]: {},
@@ -191,30 +160,7 @@ export default function App() {
               [pluginForms as unknown as string]: {},
             },
           }}
-        >
-          {/* Left Panel: Blocks */}
-          <div className="dw-left-panel">
-            <div className="dw-panel-header">{t('blocks')}</div>
-            <div id="blocks-panel" className="dw-panel-content" />
-          </div>
-
-          {/* Center: Canvas */}
-          <div className="dw-canvas-wrap">
-            <Canvas />
-          </div>
-
-          {/* Right Panel: Styles / Traits / Layers */}
-          <div className="dw-right-panel">
-            <div className="dw-panel-tabs">
-              <button className={`dw-panel-tab ${rightPanel === 'styles' ? 'active' : ''}`} onClick={() => setRightPanel('styles')}>{t('styles')}</button>
-              <button className={`dw-panel-tab ${rightPanel === 'traits' ? 'active' : ''}`} onClick={() => setRightPanel('traits')}>{t('traits')}</button>
-              <button className={`dw-panel-tab ${rightPanel === 'layers' ? 'active' : ''}`} onClick={() => setRightPanel('layers')}>{t('layers')}</button>
-            </div>
-            <div id="styles-panel" className="dw-panel-content" style={{ display: rightPanel === 'styles' ? 'block' : 'none' }} />
-            <div id="traits-panel" className="dw-panel-content" style={{ display: rightPanel === 'traits' ? 'block' : 'none' }} />
-            <div id="layers-panel" className="dw-panel-content" style={{ display: rightPanel === 'layers' ? 'block' : 'none' }} />
-          </div>
-        </GjsEditor>
+        />
       </div>
 
       {/* Footer */}
