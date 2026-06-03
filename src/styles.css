@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: #1e293b;
+  background: #444;
   color: white;
   gap: 12px;
   flex-shrink: 0;
@@ -81,7 +81,7 @@
   font-weight: 700;
   cursor: pointer;
 }
-.dw-lang.active { background: white; color: #1e293b; }
+.dw-lang.active { background: white; color: #444; }
 
 /* Editor Layout */
 .dw-editor-wrap {
