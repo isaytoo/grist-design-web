@@ -255,41 +255,16 @@
   gap: 6px;
 }
 
-/* GrapesJS theme override — modern blue/slate */
-.gjs-one-bg { background-color: #f8fafc !important; }
-.gjs-two-color { color: #1e293b !important; }
-.gjs-three-bg { background-color: #e2e8f0 !important; }
-.gjs-four-color, .gjs-four-color-h:hover { color: #3b82f6 !important; }
-
-.gjs-pn-panel { background-color: #f8fafc !important; border-color: #e2e8f0 !important; }
-.gjs-pn-views-container { background-color: #f8fafc !important; }
-.gjs-pn-commands { background-color: #f8fafc !important; }
-.gjs-cv-canvas { background-color: #e2e8f0 !important; }
-
-.gjs-block { color: #1e293b !important; }
-.gjs-block:hover { border-color: #3b82f6 !important; }
-.gjs-block-label { font-size: 12px !important; color: #475569 !important; }
-.gjs-block-category .gjs-title { background: #f1f5f9 !important; color: #475569 !important; font-weight: 600 !important; border: none !important; }
-.gjs-block-categories { background: transparent !important; }
-
-.gjs-sm-sector .gjs-sm-sector-title { background: #f1f5f9 !important; color: #475569 !important; font-weight: 600 !important; border: none !important; }
-.gjs-sm-sector .gjs-sm-property { color: #475569 !important; }
-.gjs-sm-sector .gjs-sm-label { color: #64748b !important; }
-.gjs-field { background: white !important; border: 1px solid #e2e8f0 !important; border-radius: 4px !important; color: #1e293b !important; }
-.gjs-field:focus-within { border-color: #3b82f6 !important; }
-.gjs-select { background: white !important; border: 1px solid #e2e8f0 !important; color: #1e293b !important; }
-
-.gjs-clm-tags { background: transparent !important; }
-.gjs-clm-tag { background: #dbeafe !important; color: #1e40af !important; border-radius: 4px !important; }
-.gjs-clm-sels-info { color: #64748b !important; }
-
-.gjs-layer { background: transparent !important; }
-.gjs-layer.gjs-selected .gjs-layer-name { color: #3b82f6 !important; }
-.gjs-layer-name { color: #475569 !important; }
-
-.gjs-toolbar { background: #1e293b !important; border-radius: 6px !important; }
-.gjs-toolbar-item { color: white !important; }
-.gjs-resizer-h { border-color: #3b82f6 !important; }
-
-.gjs-highlighter { outline-color: #3b82f6 !important; }
-.gjs-badge { background: #3b82f6 !important; color: white !important; border-radius: 4px !important; }
+/* GrapesJS theme — official grapesjs.com/demo palette
+   Defined via the native CSS variables so the whole editor (panels, blocks,
+   style manager, layers, toolbar, badges) matches the demo exactly. */
+.gjs-editor,
+.gjs-editor-wrapper {
+  --gjs-primary-color: #444;          /* panels background */
+  --gjs-secondary-color: #ddd;        /* text */
+  --gjs-tertiary-color: #804f7b;      /* purple accent */
+  --gjs-quaternary-color: #d278c9;    /* pink/magenta accent (active) */
+  --gjs-color-highlight: #71b7f1;     /* selection highlight */
+  --gjs-font-color: #ddd;
+  --gjs-font-color-active: #f8f8f8;
+}
