@@ -3,6 +3,17 @@ import type { Editor } from 'grapesjs';
 export function registerCustomBlocks(editor: Editor) {
   const bm = editor.Blocks;
 
+  // Blank Section (empty, droppable container to build from scratch)
+  bm.add('blank-section', {
+    label: '⬜ Section vierge',
+    category: 'Sections',
+    content: {
+      tagName: 'section',
+      droppable: true,
+      style: { padding: '60px 40px', 'min-height': '120px' },
+    },
+  });
+
   // Hero Section
   bm.add('hero-section', {
     label: '🦸 Hero',
