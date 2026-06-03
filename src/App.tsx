@@ -174,21 +174,17 @@ export default function App() {
             },
             plugins: [
               presetWebpage,
-              // Pass flexGrid directly so blocks-basic uses flex columns instead of its
-              // default display:table-cell columns (which baseline-align text to the
-              // bottom of a tall image cell). The UMD build exposes the plugin under
-              // `.default`; grapesjs unwraps it when passed in `plugins`, but we must do
-              // it ourselves when invoking the function manually.
               (editor: Editor) => {
-                const basic = (blocksBasic as unknown as { default?: typeof blocksBasic }).default ?? blocksBasic;
-                basic(editor, { flexGrid: true });
+                // Unwrap UMD .default for plugins that use that pattern
+                const unwrap = (p: unknown) => (p as { default?: Function }).default ?? p;
+                (unwrap(blocksBasic) as Function)(editor, { flexGrid: true });
+                (unwrap(pluginTabs) as Function)(editor, {});
+                (unwrap(pluginTyped) as Function)(editor, {});
               },
               pluginForms,
               pluginCountdown,
-              pluginTabs,
               pluginCustomCode,
               pluginTooltip,
-              pluginTyped,
             ],
           }}
         />
