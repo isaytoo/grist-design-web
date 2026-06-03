@@ -5,6 +5,11 @@ import GjsEditor from '@grapesjs/react';
 import presetWebpage from 'grapesjs-preset-webpage';
 import blocksBasic from 'grapesjs-blocks-basic';
 import pluginForms from 'grapesjs-plugin-forms';
+import pluginCountdown from 'grapesjs-component-countdown';
+import pluginTabs from 'grapesjs-tabs';
+import pluginCustomCode from 'grapesjs-custom-code';
+import pluginTooltip from 'grapesjs-tooltip';
+import pluginTyped from 'grapesjs-typed';
 import { registerCustomBlocks } from './blocks';
 import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
@@ -179,6 +184,11 @@ export default function App() {
                 basic(editor, { flexGrid: true });
               },
               pluginForms,
+              pluginCountdown,
+              pluginTabs,
+              pluginCustomCode,
+              pluginTooltip,
+              pluginTyped,
             ],
           }}
         />

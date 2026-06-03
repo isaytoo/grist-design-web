@@ -16,10 +16,22 @@ const ICONS = {
   footer: svgIcon('<rect x="4" y="36" width="56" height="20" rx="4"/><line x1="14" y1="46" x2="50" y2="46"/><line x1="20" y1="52" x2="44" y2="52"/>'),
   separator: svgIcon('<line x1="8" y1="32" x2="56" y2="32"/>'),
   spacer: svgIcon('<line x1="32" y1="12" x2="32" y2="22"/><line x1="28" y1="16" x2="32" y2="12"/><line x1="36" y1="16" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="42"/><line x1="28" y1="48" x2="32" y2="52"/><line x1="36" y1="48" x2="32" y2="52"/>'),
+  div: svgIcon('<rect x="10" y="14" width="44" height="36" rx="2" stroke-dasharray="4,3"/><text x="24" y="36" fill="currentColor" stroke="none" font-size="12">Div</text>'),
 };
 
 export function registerCustomBlocks(editor: Editor) {
   const bm = editor.Blocks;
+
+  bm.add('div-block', {
+    label: 'Div',
+    category: 'Basic',
+    media: ICONS.div,
+    content: {
+      tagName: 'div',
+      droppable: true,
+      style: { padding: '10px' },
+    },
+  });
 
   bm.add('blank-section', {
     label: 'Section vierge',
