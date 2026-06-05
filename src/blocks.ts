@@ -7,6 +7,7 @@ const svgIcon = (paths: string) =>
 const ICONS = {
   blank: svgIcon('<rect x="8" y="8" width="48" height="48" rx="4" stroke-dasharray="4,4"/>'),
   hero: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><line x1="18" y1="26" x2="46" y2="26"/><line x1="22" y1="34" x2="42" y2="34"/><rect x="24" y="40" width="16" height="8" rx="3"/>'),
+  heroPro: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><line x1="18" y1="24" x2="46" y2="24"/><line x1="22" y1="32" x2="42" y2="32"/><rect x="24" y="38" width="16" height="8" rx="3"/><path d="M10 14l8 6-3 0 5 8-3 0 5 10H10z" fill="currentColor" stroke="none" opacity="0.15"/><circle cx="50" cy="16" r="4" fill="currentColor" stroke="none" opacity="0.15"/>'),
   cta: svgIcon('<rect x="6" y="16" width="52" height="32" rx="4"/><line x1="18" y1="28" x2="46" y2="28"/><rect x="22" y="34" width="20" height="8" rx="3"/>'),
   features: svgIcon('<rect x="4" y="12" width="16" height="16" rx="3"/><rect x="24" y="12" width="16" height="16" rx="3"/><rect x="44" y="12" width="16" height="16" rx="3"/><line x1="6" y1="36" x2="18" y2="36"/><line x1="26" y1="36" x2="38" y2="36"/><line x1="46" y1="36" x2="58" y2="36"/><line x1="8" y1="42" x2="16" y2="42"/><line x1="28" y1="42" x2="36" y2="42"/><line x1="48" y1="42" x2="56" y2="42"/>'),
   testimonial: svgIcon('<path d="M12 14 h40 a4 4 0 0 1 4 4 v20 a4 4 0 0 1-4 4 H28 l-8 8 v-8 H12 a4 4 0 0 1-4-4 V18 a4 4 0 0 1 4-4z"/><line x1="18" y1="24" x2="46" y2="24"/><line x1="18" y1="32" x2="38" y2="32"/>'),
@@ -101,6 +102,197 @@ export function registerCustomBlocks(editor: Editor) {
       <p style="font-size:20px;opacity:0.9;margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;">Description courte de votre projet ou produit</p>
       <a href="#" style="display:inline-block;background:white;color:#764ba2;padding:14px 32px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px;">Commencer</a>
     </section>`,
+  });
+
+  // ── Hero Pro component type ──
+  function buildHeroProHtml(bgType: string, overlayStyle: string, textAnim: string, parallax: boolean, heroHeight: string, bgImage: string, bgVideo: string) {
+    const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
+    const h = heroHeight === 'fullscreen' ? '100vh' : heroHeight;
+
+    let bgLayer = '';
+    if (bgType === 'video') {
+      bgLayer = `<video class="${uid}-video" autoplay muted loop playsinline style="position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;z-index:0;"${bgVideo ? ` src="${bgVideo}"` : ''}>
+        </video>`;
+    } else if (bgType === 'image') {
+      bgLayer = `<div class="${uid}-bgimg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:url('${bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image'}') center/cover no-repeat;z-index:0;${parallax ? 'background-attachment:fixed;' : ''}"></div>`;
+    }
+
+    const overlays: Record<string, string> = {
+      none: '',
+      dark: 'background:rgba(0,0,0,0.55);',
+      light: 'background:rgba(255,255,255,0.4);',
+      gradient: 'background:linear-gradient(135deg,rgba(102,126,234,0.7),rgba(118,75,162,0.7));',
+      'gradient-bottom': 'background:linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 60%);',
+      mesh: 'background:linear-gradient(45deg,rgba(102,126,234,0.5) 0%,rgba(244,63,94,0.4) 50%,rgba(251,191,36,0.3) 100%);',
+    };
+    const overlayCSS = overlays[overlayStyle] || '';
+    const overlayEl = overlayCSS ? `<div class="${uid}-overlay" style="position:absolute;top:0;left:0;right:0;bottom:0;${overlayCSS}z-index:1;"></div>` : '';
+
+    const textAnimClass = textAnim !== 'none' ? `${uid}-anim` : '';
+
+    const animKeyframes: Record<string, string> = {
+      'fade-up': `@keyframes ${uid}FadeUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}`,
+      'fade-in': `@keyframes ${uid}FadeIn{from{opacity:0}to{opacity:1}}`,
+      'zoom-in': `@keyframes ${uid}ZoomIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}`,
+      'slide-right': `@keyframes ${uid}SlideRight{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:translateX(0)}}`,
+      'typewriter': `@keyframes ${uid}Typewriter{from{width:0}to{width:100%}}@keyframes ${uid}Blink{50%{border-color:transparent}}`,
+    };
+
+    const animNames: Record<string, string> = {
+      'fade-up': `${uid}FadeUp`,
+      'fade-in': `${uid}FadeIn`,
+      'zoom-in': `${uid}ZoomIn`,
+      'slide-right': `${uid}SlideRight`,
+      'typewriter': `${uid}Typewriter`,
+    };
+
+    let css = '';
+    if (textAnim !== 'none' && animKeyframes[textAnim]) {
+      css += animKeyframes[textAnim];
+      if (textAnim === 'typewriter') {
+        css += `.${uid}-anim h1{overflow:hidden;white-space:nowrap;border-right:3px solid white;width:0;animation:${animNames[textAnim]} 2.5s steps(30) 0.5s forwards,${uid}Blink 0.75s step-end infinite;}`;
+        css += `.${uid}-anim p,.${uid}-anim a{opacity:0;animation:${uid}FadeIn 0.8s ease 3s forwards;}`;
+        css += `@keyframes ${uid}FadeIn{from{opacity:0}to{opacity:1}}`;
+      } else {
+        css += `.${uid}-anim h1{opacity:0;animation:${animNames[textAnim]} 0.8s ease 0.3s forwards;}`;
+        css += `.${uid}-anim p{opacity:0;animation:${animNames[textAnim]} 0.8s ease 0.6s forwards;}`;
+        css += `.${uid}-anim a{opacity:0;animation:${animNames[textAnim]} 0.8s ease 0.9s forwards;}`;
+      }
+    }
+
+    const gradientBg = bgType === 'gradient' ? 'background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);' : '';
+
+    return `<section class="${uid}" style="position:relative;overflow:hidden;${gradientBg}color:white;min-height:${h};display:flex;align-items:center;justify-content:center;">
+      ${bgLayer}${overlayEl}
+      <div class="${uid}-content ${textAnimClass}" style="position:relative;z-index:2;text-align:center;max-width:800px;padding:80px 40px;">
+        <h1 style="font-size:56px;font-weight:900;margin-bottom:20px;text-shadow:0 2px 20px rgba(0,0,0,0.3);line-height:1.1;">Titre principal</h1>
+        <p style="font-size:22px;opacity:0.92;margin-bottom:36px;text-shadow:0 1px 10px rgba(0,0,0,0.2);line-height:1.6;">Description courte de votre projet ou produit avec un texte accrocheur</p>
+        <a href="#" style="display:inline-block;background:white;color:#764ba2;padding:16px 36px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:transform 0.2s,box-shadow 0.2s;">Commencer</a>
+      </div>
+      ${css ? `<style>${css}</style>` : ''}
+    </section>`;
+  }
+
+  editor.Components.addType('hero-pro', {
+    model: {
+      defaults: {
+        tagName: 'div',
+        droppable: false,
+        'hero-bg': 'gradient',
+        'hero-overlay': 'none',
+        'hero-text-anim': 'fade-up',
+        'hero-parallax': 'off',
+        'hero-height': '500px',
+        'hero-bg-image': '',
+        'hero-bg-video': '',
+        traits: [
+          {
+            type: 'select' as const,
+            label: 'Type de fond',
+            name: 'hero-bg',
+            changeProp: true,
+            options: [
+              { id: 'gradient', value: 'gradient', name: 'Dégradé' },
+              { id: 'image', value: 'image', name: 'Image' },
+              { id: 'video', value: 'video', name: 'Vidéo' },
+            ],
+          },
+          {
+            type: 'text' as const,
+            label: 'URL image de fond',
+            name: 'hero-bg-image',
+            changeProp: true,
+            placeholder: 'https://...',
+          },
+          {
+            type: 'text' as const,
+            label: 'URL vidéo (mp4)',
+            name: 'hero-bg-video',
+            changeProp: true,
+            placeholder: 'https://...video.mp4',
+          },
+          {
+            type: 'select' as const,
+            label: 'Overlay',
+            name: 'hero-overlay',
+            changeProp: true,
+            options: [
+              { id: 'none', value: 'none', name: 'Aucun' },
+              { id: 'dark', value: 'dark', name: 'Sombre' },
+              { id: 'light', value: 'light', name: 'Clair' },
+              { id: 'gradient', value: 'gradient', name: 'Dégradé violet' },
+              { id: 'gradient-bottom', value: 'gradient-bottom', name: 'Fondu bas' },
+              { id: 'mesh', value: 'mesh', name: 'Mesh coloré' },
+            ],
+          },
+          {
+            type: 'select' as const,
+            label: 'Animation texte',
+            name: 'hero-text-anim',
+            changeProp: true,
+            options: [
+              { id: 'none', value: 'none', name: 'Aucune' },
+              { id: 'fade-up', value: 'fade-up', name: 'Fade up' },
+              { id: 'fade-in', value: 'fade-in', name: 'Fade in' },
+              { id: 'zoom-in', value: 'zoom-in', name: 'Zoom in' },
+              { id: 'slide-right', value: 'slide-right', name: 'Slide droite' },
+              { id: 'typewriter', value: 'typewriter', name: 'Machine à écrire' },
+            ],
+          },
+          {
+            type: 'select' as const,
+            label: 'Parallax',
+            name: 'hero-parallax',
+            changeProp: true,
+            options: [
+              { id: 'off', value: 'off', name: 'Désactivé' },
+              { id: 'on', value: 'on', name: 'Activé (image)' },
+            ],
+          },
+          {
+            type: 'select' as const,
+            label: 'Hauteur',
+            name: 'hero-height',
+            changeProp: true,
+            options: [
+              { id: '400px', value: '400px', name: '400px — Compact' },
+              { id: '500px', value: '500px', name: '500px — Standard' },
+              { id: '600px', value: '600px', name: '600px — Grand' },
+              { id: '80vh', value: '80vh', name: '80vh — Presque plein écran' },
+              { id: 'fullscreen', value: 'fullscreen', name: '100vh — Plein écran' },
+            ],
+          },
+        ],
+        components: buildHeroProHtml('gradient', 'none', 'fade-up', false, '500px', '', ''),
+      },
+      init() {
+        this.on('change:hero-bg', this.onHeroChange);
+        this.on('change:hero-overlay', this.onHeroChange);
+        this.on('change:hero-text-anim', this.onHeroChange);
+        this.on('change:hero-parallax', this.onHeroChange);
+        this.on('change:hero-height', this.onHeroChange);
+        this.on('change:hero-bg-image', this.onHeroChange);
+        this.on('change:hero-bg-video', this.onHeroChange);
+      },
+      onHeroChange() {
+        const bg = this.get('hero-bg') || 'gradient';
+        const overlay = this.get('hero-overlay') || 'none';
+        const anim = this.get('hero-text-anim') || 'fade-up';
+        const parallax = this.get('hero-parallax') === 'on';
+        const height = this.get('hero-height') || '500px';
+        const bgImage = this.get('hero-bg-image') || '';
+        const bgVideo = this.get('hero-bg-video') || '';
+        this.components().reset();
+        this.components(buildHeroProHtml(bg, overlay, anim, parallax, height, bgImage, bgVideo));
+      },
+    },
+  });
+
+  bm.add('hero-pro', {
+    label: 'Hero Pro',
+    category: 'Sections',
+    media: ICONS.heroPro,
+    content: { type: 'hero-pro' },
   });
 
   bm.add('cta-section', {
