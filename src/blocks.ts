@@ -426,18 +426,83 @@ export function registerCustomBlocks(editor: Editor) {
     content: { type: 'cards-color-section' },
   });
 
+  const navStyles: Record<string, { bg: string; text: string; accent: string; border: string }> = {
+    light:  { bg: '#ffffff', text: '#1e293b', accent: '#3b82f6', border: '1px solid #e2e8f0' },
+    dark:   { bg: '#1e293b', text: '#e2e8f0', accent: '#60a5fa', border: 'none' },
+    transparent: { bg: 'transparent', text: '#ffffff', accent: '#fbbf24', border: 'none' },
+    glass:  { bg: 'rgba(255,255,255,0.1)', text: '#ffffff', accent: '#a78bfa', border: '1px solid rgba(255,255,255,0.15)' },
+  };
+
+  function buildNavbarHtml(style: string) {
+    const s = navStyles[style] || navStyles.light;
+    const uid = 'nav-' + Math.random().toString(36).slice(2, 8);
+    return `<nav class="${uid}" style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:${s.bg};border-bottom:${s.border};${style === 'glass' ? 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);' : ''}">
+      <a href="#" style="font-size:20px;font-weight:800;color:${s.text};text-decoration:none;">MonSite</a>
+      <div class="${uid}-menu" style="display:flex;gap:4px;align-items:center;">
+        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Accueil</a>
+        <div class="${uid}-dropdown" style="position:relative;">
+          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;display:flex;align-items:center;gap:4px;">Services <span style="font-size:10px;">▼</span></a>
+          <div class="${uid}-sub" style="display:none;position:absolute;top:100%;left:0;background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:6px 0;z-index:1000;">
+            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Web Design</a>
+            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Développement</a>
+            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">SEO</a>
+          </div>
+        </div>
+        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">À propos</a>
+        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Contact</a>
+        <a href="#" style="display:inline-block;margin-left:12px;padding:8px 20px;background:${s.accent};color:white;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;transition:opacity 0.2s;">CTA</a>
+      </div>
+      <button class="${uid}-burger" style="display:none;background:none;border:none;cursor:pointer;padding:6px;" onclick="(function(b){var m=b.closest('.${uid}').querySelector('.${uid}-menu');m.style.display=m.style.display==='flex'?'none':'flex';m.style.flexDirection='column';m.style.position='absolute';m.style.top='100%';m.style.left='0';m.style.right='0';m.style.background='${s.bg === 'transparent' ? '#1e293b' : s.bg}';m.style.padding='16px';m.style.zIndex='999';})(this)">
+        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
+        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
+        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
+      </button>
+      <style>
+        .${uid}-dropdown:hover .${uid}-sub{display:block!important;animation:navDropIn 0.2s ease;}
+        .${uid}-sub a:hover{background:#f1f5f9;}
+        .${uid}-menu>a:hover,.${uid}-dropdown>a:hover{background:rgba(0,0,0,0.06);}
+        @keyframes navDropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+        @media(max-width:768px){.${uid}-menu{display:none!important;}.${uid}-burger{display:block!important;}}
+      </style>
+    </nav>`;
+  }
+
+  editor.Components.addType('advanced-navbar', {
+    model: {
+      defaults: {
+        tagName: 'div',
+        droppable: false,
+        'nav-style': 'light',
+        traits: [
+          {
+            type: 'select' as const,
+            label: 'Style',
+            name: 'nav-style',
+            changeProp: true,
+            options: [
+              { id: 'light', value: 'light', name: 'Light (clair)' },
+              { id: 'dark', value: 'dark', name: 'Dark (sombre)' },
+              { id: 'transparent', value: 'transparent', name: 'Transparent' },
+              { id: 'glass', value: 'glass', name: 'Glass (vitreux)' },
+            ],
+          },
+        ],
+        components: buildNavbarHtml('light'),
+      },
+      init() { this.on('change:nav-style', this.onStyleChange); },
+      onStyleChange() {
+        const style = this.get('nav-style') || 'light';
+        this.components().reset();
+        this.components(buildNavbarHtml(style));
+      },
+    },
+  });
+
   bm.add('navbar-block', {
     label: 'Navbar',
     category: 'Navigation',
     media: ICONS.navbar,
-    content: `<nav style="display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:white;border-bottom:1px solid #e2e8f0;">
-      <div style="font-size:20px;font-weight:800;color:#1e293b;">MonSite</div>
-      <div style="display:flex;gap:24px;">
-        <a href="#" style="text-decoration:none;color:#64748b;font-weight:600;">Accueil</a>
-        <a href="#" style="text-decoration:none;color:#64748b;font-weight:600;">Services</a>
-        <a href="#" style="text-decoration:none;color:#64748b;font-weight:600;">Contact</a>
-      </div>
-    </nav>`,
+    content: { type: 'advanced-navbar' },
   });
 
   bm.add('footer-block', {
