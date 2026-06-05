@@ -17,6 +17,7 @@ import pluginStyleBg from 'grapesjs-style-bg';
 import pluginParserPostcss from 'grapesjs-parser-postcss';
 import pluginExport from 'grapesjs-plugin-export';
 import { registerCustomBlocks } from './blocks';
+import { registerSectionAdder } from './sectionAdder';
 import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
 import { addImagesAsBase64 } from './assets';
@@ -44,6 +45,7 @@ export default function App() {
   const onEditor = useCallback(async (editor: Editor) => {
     editorRef.current = editor;
     registerCustomBlocks(editor);
+    registerSectionAdder(editor);
 
     // Intercept image uploads → convert to base64 data URIs
     editor.on('asset:upload:start', () => {});
