@@ -49,7 +49,19 @@ export default function App() {
     const pluginNavbarBlock = editor.Blocks.get('navbar');
     if (pluginNavbarBlock) pluginNavbarBlock.set('label', 'Navbar Simple');
 
-    editor.BlockManager.getCategories().each((cat: any) => cat.set('open', false));
+    const STORAGE_KEY = 'dw-open-categories';
+    const savedOpen: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    editor.BlockManager.getCategories().each((cat: any) => {
+      const name = cat.get('id') || cat.get('label');
+      cat.set('open', savedOpen.includes(name));
+      cat.on('change:open', () => {
+        const open: string[] = [];
+        editor.BlockManager.getCategories().each((c: any) => {
+          if (c.get('open')) open.push(c.get('id') || c.get('label'));
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(open));
+      });
+    });
 
     // Intercept image uploads → convert to base64 data URIs
     editor.on('asset:upload:start', () => {});
