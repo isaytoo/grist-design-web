@@ -877,40 +877,64 @@ export function registerCustomBlocks(editor: Editor) {
     glass:  { bg: 'rgba(255,255,255,0.1)', text: '#ffffff', accent: '#a78bfa', border: '1px solid rgba(255,255,255,0.15)' },
   };
 
-  function buildNavbarHtml(style: string, maxWidth: string) {
-    const s = navStyles[style] || navStyles.light;
-    const uid = 'nav-' + Math.random().toString(36).slice(2, 8);
-    return `<nav class="${uid}" style="width:100%;background:${s.bg};border-bottom:${s.border};${style === 'glass' ? 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);' : ''}">
-      <div class="${uid}-container" style="max-width:${maxWidth};margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;position:relative;">
-        <a href="#" style="font-size:20px;font-weight:800;color:${s.text};text-decoration:none;">MonSite</a>
-        <div class="${uid}-menu" style="display:flex;gap:4px;align-items:center;">
-          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Accueil</a>
-          <div class="${uid}-dropdown" style="position:relative;">
-            <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;display:flex;align-items:center;gap:4px;">Services <span style="font-size:10px;">▼</span></a>
-            <div class="${uid}-sub" style="display:none;position:absolute;top:100%;left:0;background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:6px 0;z-index:1000;">
-              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Web Design</a>
-              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Développement</a>
-              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">SEO</a>
+  // Structure de la navbar : classes only, couleurs via variables CSS (héritées
+  // du wrapper). Aucun style de couleur en dur → changer le style ne reconstruit
+  // pas le contenu et préserve les textes/liens édités.
+  function buildNavbarStructure(uid: string) {
+    return `<nav class="${uid}">
+      <div class="${uid}-container">
+        <a class="${uid}-logo" href="#">MonSite</a>
+        <div class="${uid}-menu">
+          <a class="${uid}-link" href="#">Accueil</a>
+          <div class="${uid}-dropdown" data-navdrop>
+            <a class="${uid}-link" href="#">Services <span class="${uid}-caret">▾</span></a>
+            <div class="${uid}-sub" data-navsub>
+              <a class="${uid}-sub-link" href="#">Web Design</a>
+              <a class="${uid}-sub-link" href="#">Développement</a>
+              <a class="${uid}-sub-link" href="#">SEO</a>
             </div>
           </div>
-          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">À propos</a>
-          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Contact</a>
-          <a href="#" style="display:inline-block;margin-left:12px;padding:8px 20px;background:${s.accent};color:white;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;transition:opacity 0.2s;">CTA</a>
+          <a class="${uid}-link" href="#">À propos</a>
+          <a class="${uid}-link" href="#">Contact</a>
+          <a class="${uid}-cta" href="#">CTA</a>
         </div>
-        <button class="${uid}-burger" style="display:none;background:none;border:none;cursor:pointer;padding:6px;" onclick="(function(b){var c=b.closest('.${uid}-container');var m=c.querySelector('.${uid}-menu');if(m.dataset.open==='1'){m.style.display='';m.style.flexDirection='';m.style.position='';m.style.top='';m.style.left='';m.style.right='';m.style.background='';m.style.padding='';m.style.zIndex='';m.dataset.open='0';}else{m.style.display='flex';m.style.flexDirection='column';m.style.position='absolute';m.style.top='100%';m.style.left='0';m.style.right='0';m.style.background='${s.bg === 'transparent' ? '#1e293b' : s.bg}';m.style.padding='16px';m.style.zIndex='999';m.dataset.open='1';}})(this)">
-          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:transform 0.2s;"></span>
-          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:opacity 0.2s;"></span>
-          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:transform 0.2s;"></span>
-        </button>
+        <button class="${uid}-burger" onclick="(function(b){var m=b.closest('.${uid}-container').querySelector('.${uid}-menu');m.dataset.open=m.dataset.open==='1'?'0':'1';})(this)"><span></span><span></span><span></span></button>
       </div>
-      <style>
-        .${uid}-dropdown:hover .${uid}-sub{display:block!important;animation:navDropIn 0.2s ease;}
-        .${uid}-sub a:hover{background:#f1f5f9;}
-        .${uid}-menu>a:hover,.${uid}-dropdown>a:hover{background:rgba(0,0,0,0.06);}
-        @keyframes navDropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-        @media(max-width:768px){.${uid}-menu{display:none!important;}.${uid}-burger{display:block!important;}}
-      </style>
     </nav>`;
+  }
+
+  function buildNavbarCss(uid: string) {
+    return `
+.${uid}{width:100%;background:var(--nav-bg);border-bottom:var(--nav-border);backdrop-filter:var(--nav-blur);-webkit-backdrop-filter:var(--nav-blur);}
+.${uid}-container{max-width:var(--nav-width);margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;position:relative;}
+.${uid}-logo{font-size:20px;font-weight:800;color:var(--nav-text);text-decoration:none;}
+.${uid}-menu{display:flex;gap:4px;align-items:center;}
+.${uid}-link{text-decoration:none;color:var(--nav-text);font-weight:600;padding:8px 14px;border-radius:6px;transition:background .2s,color .2s;display:flex;align-items:center;gap:4px;}
+.${uid}-link:hover{background:rgba(127,127,127,0.15);}
+.${uid}-caret{font-size:10px;}
+.${uid}-dropdown{position:relative;}
+.${uid}-sub{display:none;position:absolute;top:100%;left:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:6px 0;z-index:1000;}
+.${uid}-dropdown:hover .${uid}-sub,.${uid}-sub[data-open="1"]{display:block;animation:${uid}Drop .2s ease;}
+.${uid}-sub-link{display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background .15s;}
+.${uid}-sub-link:hover{background:#f1f5f9;}
+.${uid}-cta{display:inline-block;margin-left:12px;padding:8px 20px;background:var(--nav-accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;}
+.${uid}-burger{display:none;background:none;border:none;cursor:pointer;padding:6px;}
+.${uid}-burger span{display:block;width:24px;height:2px;background:var(--nav-text);margin:5px 0;}
+@keyframes ${uid}Drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){.${uid}-menu{display:none;}.${uid}-burger{display:block;}.${uid}-menu[data-open="1"]{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:var(--nav-mobile-bg);padding:16px;z-index:999;}}`;
+  }
+
+  function navVars(style: string, width: string) {
+    const s = navStyles[style] || navStyles.light;
+    return {
+      '--nav-bg': s.bg,
+      '--nav-text': s.text,
+      '--nav-accent': s.accent,
+      '--nav-border': s.border,
+      '--nav-blur': style === 'glass' ? 'blur(12px)' : 'none',
+      '--nav-width': width,
+      '--nav-mobile-bg': s.bg === 'transparent' ? '#1e293b' : s.bg,
+    };
   }
 
   editor.Components.addType('advanced-navbar', {
@@ -920,6 +944,7 @@ export function registerCustomBlocks(editor: Editor) {
         droppable: false,
         'nav-style': 'light',
         'nav-width': '1200px',
+        'nav-uid': '',
         traits: [
           {
             type: 'select' as const,
@@ -947,20 +972,41 @@ export function registerCustomBlocks(editor: Editor) {
             ],
           },
         ],
-        components: buildNavbarHtml('light', '1200px'),
       },
       init() {
-        this.on('change:nav-style', this.onNavChange);
-        this.on('change:nav-width', this.onNavChange);
+        if (!this.get('nav-uid')) {
+          this.set('nav-uid', 'navp-' + Math.random().toString(36).slice(2, 8));
+        }
+        // Construction unique (pas au rechargement d'un projet sauvegardé)
+        if (this.components().length === 0) {
+          const uid = this.get('nav-uid');
+          this.append(buildNavbarStructure(uid));
+          this.append({ tagName: 'style', type: 'default', content: buildNavbarCss(uid), layerable: false, selectable: false, droppable: false });
+        }
+        this.applyNavVars();
+        this.on('change:nav-style', this.applyNavVars);
+        this.on('change:nav-width', this.applyNavVars);
       },
-      onNavChange() {
+      applyNavVars() {
         const style = this.get('nav-style') || 'light';
         const width = this.get('nav-width') || '1200px';
-        this.components().reset();
-        this.components(buildNavbarHtml(style, width));
+        // Variables CSS sur le wrapper : mises à jour en place, sans toucher au contenu
+        this.addStyle(navVars(style, width));
       },
     },
   });
+
+  // Éditeur : garder le sous-menu ouvert quand on le sélectionne (sinon impossible à éditer)
+  let navOpenSub: HTMLElement | null = null;
+  const closeNavSub = () => { if (navOpenSub) { navOpenSub.removeAttribute('data-open'); navOpenSub = null; } };
+  editor.on('component:selected', (sel: any) => {
+    const el: HTMLElement | undefined = sel?.getEl?.();
+    const drop = el?.closest?.('[data-navdrop]') as HTMLElement | null;
+    const sub = drop?.querySelector('[data-navsub]') as HTMLElement | null;
+    if (sub !== navOpenSub) closeNavSub();
+    if (sub) { sub.setAttribute('data-open', '1'); navOpenSub = sub; }
+  });
+  editor.on('component:deselected', closeNavSub);
 
   bm.add('navbar-pro', {
     label: 'Navbar Pro',
