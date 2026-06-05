@@ -106,13 +106,16 @@ export function registerCustomBlocks(editor: Editor) {
 
   // ── Custom file upload trait types ──
   editor.Traits.addType('file-image', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createInput({ trait }: { trait: any }) {
+      const component = trait.target;
+      const propName = trait.get('name');
       const el = document.createElement('div');
       el.style.cssText = 'display:flex;flex-direction:column;gap:4px;width:100%;';
       const textInput = document.createElement('input');
       textInput.type = 'text';
       textInput.placeholder = 'URL ou glisser image...';
-      textInput.value = trait.get('value') || '';
+      textInput.value = component.get(propName) || '';
       textInput.style.cssText = 'width:100%;padding:5px 8px;border:1px solid #444;border-radius:4px;background:#363b4a;color:#ddd;font-size:12px;box-sizing:border-box;';
 
       const btnRow = document.createElement('div');
@@ -142,6 +145,10 @@ export function registerCustomBlocks(editor: Editor) {
         if (url) { preview.style.backgroundImage = `url('${url}')`; preview.style.display = 'block'; }
         else { preview.style.display = 'none'; preview.style.backgroundImage = ''; }
       };
+      const commit = (val: string) => {
+        showPreview(val);
+        component.set(propName, val);
+      };
       showPreview(textInput.value);
 
       fileInput.addEventListener('change', () => {
@@ -151,49 +158,32 @@ export function registerCustomBlocks(editor: Editor) {
         reader.onload = () => {
           const b64 = reader.result as string;
           textInput.value = b64;
-          showPreview(b64);
-          el.dispatchEvent(new Event('change'));
+          commit(b64);
         };
         reader.readAsDataURL(file);
       });
-      textInput.addEventListener('change', () => {
-        showPreview(textInput.value);
-        el.dispatchEvent(new Event('change'));
-      });
+      textInput.addEventListener('change', () => commit(textInput.value));
       clearBtn.addEventListener('click', () => {
         textInput.value = '';
-        showPreview('');
-        el.dispatchEvent(new Event('change'));
+        commit('');
       });
-      (el as any).__textInput = textInput;
       return el;
     },
-    onEvent({ elInput, component }: { elInput: HTMLElement; component: any }) {
-      const val = (elInput as any).__textInput?.value || '';
-      component.set('hero-bg-image', val);
-    },
-    onUpdate({ elInput, component }: { elInput: HTMLElement; component: any }) {
-      const inp = (elInput as any).__textInput;
-      if (inp) {
-        const val = component.get('hero-bg-image') || '';
-        inp.value = val;
-        const preview = elInput.querySelector('div:last-child') as HTMLElement;
-        if (preview) {
-          if (val) { preview.style.backgroundImage = `url('${val}')`; preview.style.display = 'block'; }
-          else { preview.style.display = 'none'; }
-        }
-      }
-    },
+    onEvent() {},
+    onUpdate() {},
   });
 
   editor.Traits.addType('file-video', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createInput({ trait }: { trait: any }) {
+      const component = trait.target;
+      const propName = trait.get('name');
       const el = document.createElement('div');
       el.style.cssText = 'display:flex;flex-direction:column;gap:4px;width:100%;';
       const textInput = document.createElement('input');
       textInput.type = 'text';
       textInput.placeholder = 'URL ou choisir vidéo...';
-      textInput.value = trait.get('value') || '';
+      textInput.value = component.get(propName) || '';
       textInput.style.cssText = 'width:100%;padding:5px 8px;border:1px solid #444;border-radius:4px;background:#363b4a;color:#ddd;font-size:12px;box-sizing:border-box;';
 
       const btnRow = document.createElement('div');
@@ -230,29 +220,20 @@ export function registerCustomBlocks(editor: Editor) {
           textInput.value = b64;
           const sizeMB = (b64.length / 1024 / 1024).toFixed(1);
           status.textContent = `Vidéo chargée (${sizeMB} MB en base64)`;
-          el.dispatchEvent(new Event('change'));
+          component.set(propName, b64);
         };
         reader.readAsDataURL(file);
       });
-      textInput.addEventListener('change', () => {
-        el.dispatchEvent(new Event('change'));
-      });
+      textInput.addEventListener('change', () => component.set(propName, textInput.value));
       clearBtn.addEventListener('click', () => {
         textInput.value = '';
         status.style.display = 'none';
-        el.dispatchEvent(new Event('change'));
+        component.set(propName, '');
       });
-      (el as any).__textInput = textInput;
       return el;
     },
-    onEvent({ elInput, component }: { elInput: HTMLElement; component: any }) {
-      const val = (elInput as any).__textInput?.value || '';
-      component.set('hero-bg-video', val);
-    },
-    onUpdate({ elInput, component }: { elInput: HTMLElement; component: any }) {
-      const inp = (elInput as any).__textInput;
-      if (inp) inp.value = component.get('hero-bg-video') || '';
-    },
+    onEvent() {},
+    onUpdate() {},
   });
 
   // ── Hero Pro component type ──
