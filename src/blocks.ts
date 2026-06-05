@@ -279,15 +279,12 @@ export function registerCustomBlocks(editor: Editor) {
   });
 
   // ── Hero Pro component type ──
-  function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string) {
+  function buildHeroProChildren(overlayStyle: string, textAnim: string) {
     const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
 
-    let bgLayer = '';
-    if (bgType === 'video') {
-      bgLayer = `<video autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"></video>`;
-    }
-    // Le mode "image" utilise un background-image CSS sur la section (via addStyle),
-    // exporté de façon fiable par getCss() — pas de balise <img>.
+    // Le mode "image" utilise un background-image CSS sur la section (via addStyle).
+    // Le mode "vidéo" ajoute un composant <video> brut (type:default) dans onHeroRebuild,
+    // pour éviter que GrapesJS ne le transforme en lecteur vidéo avec contrôles.
 
     const overlays: Record<string, string> = {
       none: '',
@@ -332,7 +329,7 @@ export function registerCustomBlocks(editor: Editor) {
       }
     }
 
-    return `${bgLayer}${overlayEl}
+    return `${overlayEl}
       <div class="${uid}-content ${textAnimClass}" style="position:relative;z-index:2;text-align:center;max-width:800px;padding:80px 40px;">
         <h1 style="font-size:56px;font-weight:900;margin-bottom:20px;text-shadow:0 2px 20px rgba(0,0,0,0.3);line-height:1.1;">Titre principal</h1>
         <p style="font-size:22px;opacity:0.92;margin-bottom:36px;text-shadow:0 1px 10px rgba(0,0,0,0.2);line-height:1.6;">Description courte de votre projet ou produit avec un texte accrocheur</p>
@@ -362,9 +359,23 @@ export function registerCustomBlocks(editor: Editor) {
       const videoComp = cmp.find('video')[0];
       if (videoComp && videoComp.getAttributes().src !== src) videoComp.addAttributes({ src });
       const video = sectionEl?.querySelector('video') as HTMLVideoElement | null;
-      if (video && video.getAttribute('src') !== src) { video.src = src; video.load(); }
+      if (video) {
+        video.muted = true; // requis pour l'autoplay
+        if (video.getAttribute('src') !== src) { video.src = src; video.load(); }
+      }
     }
   }
+
+  const VIDEO_CHILD = {
+    type: 'default',
+    tagName: 'video',
+    droppable: false,
+    attributes: { autoplay: true, muted: true, loop: true, playsinline: true },
+    style: {
+      position: 'absolute', top: '0', left: '0',
+      width: '100%', height: '100%', 'object-fit': 'cover', 'z-index': '0',
+    },
+  };
 
   function scheduleMediaApply(cmp: any) {
     const bg = cmp.get('hero-bg') || 'gradient';
@@ -480,7 +491,7 @@ export function registerCustomBlocks(editor: Editor) {
             ],
           },
         ],
-        components: buildHeroProChildren('gradient', 'none', 'fade-up'),
+        components: buildHeroProChildren('none', 'fade-up'),
       },
       init() {
         this.on('change:hero-bg', this.onHeroRebuild);
@@ -502,7 +513,8 @@ export function registerCustomBlocks(editor: Editor) {
         this.addStyle({ 'min-height': h, background: bgStyle });
 
         this.components().reset();
-        this.components(buildHeroProChildren(bg, overlay, anim));
+        this.components(buildHeroProChildren(overlay, anim));
+        if (bg === 'video') this.components().add(VIDEO_CHILD, { at: 0 });
         if (bg !== 'gradient') scheduleMediaApply(this);
       },
       onHeroMediaChange() {
