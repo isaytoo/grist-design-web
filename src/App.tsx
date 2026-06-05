@@ -46,6 +46,9 @@ export default function App() {
     registerCustomBlocks(editor);
     registerSectionAdder(editor);
 
+    const pluginNavbarBlock = editor.Blocks.get('navbar');
+    if (pluginNavbarBlock) pluginNavbarBlock.set('label', 'Navbar Simple');
+
     // Intercept image uploads → convert to base64 data URIs
     editor.on('asset:upload:start', () => {});
     editor.on('asset:upload:response', () => {});

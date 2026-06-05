@@ -433,30 +433,32 @@ export function registerCustomBlocks(editor: Editor) {
     glass:  { bg: 'rgba(255,255,255,0.1)', text: '#ffffff', accent: '#a78bfa', border: '1px solid rgba(255,255,255,0.15)' },
   };
 
-  function buildNavbarHtml(style: string) {
+  function buildNavbarHtml(style: string, maxWidth: string) {
     const s = navStyles[style] || navStyles.light;
     const uid = 'nav-' + Math.random().toString(36).slice(2, 8);
-    return `<nav class="${uid}" style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:${s.bg};border-bottom:${s.border};${style === 'glass' ? 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);' : ''}">
-      <a href="#" style="font-size:20px;font-weight:800;color:${s.text};text-decoration:none;">MonSite</a>
-      <div class="${uid}-menu" style="display:flex;gap:4px;align-items:center;">
-        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Accueil</a>
-        <div class="${uid}-dropdown" style="position:relative;">
-          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;display:flex;align-items:center;gap:4px;">Services <span style="font-size:10px;">▼</span></a>
-          <div class="${uid}-sub" style="display:none;position:absolute;top:100%;left:0;background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:6px 0;z-index:1000;">
-            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Web Design</a>
-            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Développement</a>
-            <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">SEO</a>
+    return `<nav class="${uid}" style="width:100%;background:${s.bg};border-bottom:${s.border};${style === 'glass' ? 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);' : ''}">
+      <div class="${uid}-container" style="max-width:${maxWidth};margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;position:relative;">
+        <a href="#" style="font-size:20px;font-weight:800;color:${s.text};text-decoration:none;">MonSite</a>
+        <div class="${uid}-menu" style="display:flex;gap:4px;align-items:center;">
+          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Accueil</a>
+          <div class="${uid}-dropdown" style="position:relative;">
+            <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;display:flex;align-items:center;gap:4px;">Services <span style="font-size:10px;">▼</span></a>
+            <div class="${uid}-sub" style="display:none;position:absolute;top:100%;left:0;background:white;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:200px;padding:6px 0;z-index:1000;">
+              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Web Design</a>
+              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">Développement</a>
+              <a href="#" style="display:block;padding:10px 18px;color:#1e293b;text-decoration:none;font-size:14px;font-weight:500;transition:background 0.15s;">SEO</a>
+            </div>
           </div>
+          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">À propos</a>
+          <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Contact</a>
+          <a href="#" style="display:inline-block;margin-left:12px;padding:8px 20px;background:${s.accent};color:white;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;transition:opacity 0.2s;">CTA</a>
         </div>
-        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">À propos</a>
-        <a href="#" style="text-decoration:none;color:${s.text};font-weight:600;padding:8px 14px;border-radius:6px;transition:background 0.2s,color 0.2s;">Contact</a>
-        <a href="#" style="display:inline-block;margin-left:12px;padding:8px 20px;background:${s.accent};color:white;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;transition:opacity 0.2s;">CTA</a>
+        <button class="${uid}-burger" style="display:none;background:none;border:none;cursor:pointer;padding:6px;" onclick="(function(b){var c=b.closest('.${uid}-container');var m=c.querySelector('.${uid}-menu');if(m.dataset.open==='1'){m.style.display='';m.style.flexDirection='';m.style.position='';m.style.top='';m.style.left='';m.style.right='';m.style.background='';m.style.padding='';m.style.zIndex='';m.dataset.open='0';}else{m.style.display='flex';m.style.flexDirection='column';m.style.position='absolute';m.style.top='100%';m.style.left='0';m.style.right='0';m.style.background='${s.bg === 'transparent' ? '#1e293b' : s.bg}';m.style.padding='16px';m.style.zIndex='999';m.dataset.open='1';}})(this)">
+          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:transform 0.2s;"></span>
+          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:opacity 0.2s;"></span>
+          <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;transition:transform 0.2s;"></span>
+        </button>
       </div>
-      <button class="${uid}-burger" style="display:none;background:none;border:none;cursor:pointer;padding:6px;" onclick="(function(b){var m=b.closest('.${uid}').querySelector('.${uid}-menu');m.style.display=m.style.display==='flex'?'none':'flex';m.style.flexDirection='column';m.style.position='absolute';m.style.top='100%';m.style.left='0';m.style.right='0';m.style.background='${s.bg === 'transparent' ? '#1e293b' : s.bg}';m.style.padding='16px';m.style.zIndex='999';})(this)">
-        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
-        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
-        <span style="display:block;width:24px;height:2px;background:${s.text};margin:5px 0;"></span>
-      </button>
       <style>
         .${uid}-dropdown:hover .${uid}-sub{display:block!important;animation:navDropIn 0.2s ease;}
         .${uid}-sub a:hover{background:#f1f5f9;}
@@ -473,6 +475,7 @@ export function registerCustomBlocks(editor: Editor) {
         tagName: 'div',
         droppable: false,
         'nav-style': 'light',
+        'nav-width': '1200px',
         traits: [
           {
             type: 'select' as const,
@@ -486,20 +489,37 @@ export function registerCustomBlocks(editor: Editor) {
               { id: 'glass', value: 'glass', name: 'Glass (vitreux)' },
             ],
           },
+          {
+            type: 'select' as const,
+            label: 'Largeur container',
+            name: 'nav-width',
+            changeProp: true,
+            options: [
+              { id: '960px', value: '960px', name: '960px — Compact' },
+              { id: '1080px', value: '1080px', name: '1080px — Medium' },
+              { id: '1200px', value: '1200px', name: '1200px — Standard' },
+              { id: '1400px', value: '1400px', name: '1400px — Large' },
+              { id: '100%', value: '100%', name: '100% — Pleine largeur' },
+            ],
+          },
         ],
-        components: buildNavbarHtml('light'),
+        components: buildNavbarHtml('light', '1200px'),
       },
-      init() { this.on('change:nav-style', this.onStyleChange); },
-      onStyleChange() {
+      init() {
+        this.on('change:nav-style', this.onNavChange);
+        this.on('change:nav-width', this.onNavChange);
+      },
+      onNavChange() {
         const style = this.get('nav-style') || 'light';
+        const width = this.get('nav-width') || '1200px';
         this.components().reset();
-        this.components(buildNavbarHtml(style));
+        this.components(buildNavbarHtml(style, width));
       },
     },
   });
 
-  bm.add('navbar-block', {
-    label: 'Navbar',
+  bm.add('navbar-pro', {
+    label: 'Navbar Pro',
     category: 'Navigation',
     media: ICONS.navbar,
     content: { type: 'advanced-navbar' },
