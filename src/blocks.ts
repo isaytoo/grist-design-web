@@ -256,17 +256,16 @@ export function registerCustomBlocks(editor: Editor) {
   });
 
   // ── Hero Pro component type ──
-  function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string, parallax: boolean, bgImage: string, bgVideo: string) {
+  const HERO_MEDIA_ATTR = 'data-hero-media';
+
+  function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string) {
     const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
 
     let bgLayer = '';
     if (bgType === 'video') {
-      bgLayer = `<video class="${uid}-video" autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"${bgVideo ? ` src="${bgVideo}"` : ''}>
-        </video>`;
+      bgLayer = `<video ${HERO_MEDIA_ATTR}="1" autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"></video>`;
     } else if (bgType === 'image') {
-      const src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
-      const parallaxStyle = parallax ? 'position:fixed;top:0;left:0;width:100vw;height:100vh;' : 'position:absolute;top:0;left:0;width:100%;height:100%;';
-      bgLayer = `<img class="${uid}-bgimg" src="${src}" alt="" style="${parallaxStyle}object-fit:cover;z-index:0;pointer-events:none;" />`;
+      bgLayer = `<img ${HERO_MEDIA_ATTR}="1" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;" />`;
     }
 
     const overlays: Record<string, string> = {
@@ -278,7 +277,7 @@ export function registerCustomBlocks(editor: Editor) {
       mesh: 'background:linear-gradient(45deg,rgba(102,126,234,0.5) 0%,rgba(244,63,94,0.4) 50%,rgba(251,191,36,0.3) 100%);',
     };
     const overlayCSS = overlays[overlayStyle] || '';
-    const overlayEl = overlayCSS ? `<div class="${uid}-overlay" style="position:absolute;top:0;left:0;right:0;bottom:0;${overlayCSS}z-index:1;"></div>` : '';
+    const overlayEl = overlayCSS ? `<div style="position:absolute;top:0;left:0;right:0;bottom:0;${overlayCSS}z-index:1;"></div>` : '';
 
     const textAnimClass = textAnim !== 'none' ? `${uid}-anim` : '';
 
@@ -319,6 +318,25 @@ export function registerCustomBlocks(editor: Editor) {
         <a href="#" style="display:inline-block;background:white;color:#764ba2;padding:16px 36px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:transform 0.2s,box-shadow 0.2s;">Commencer</a>
       </div>
       ${css ? `<style>${css}</style>` : ''}`;
+  }
+
+  function applyHeroMedia(cmp: any) {
+    const bg = cmp.get('hero-bg') || 'gradient';
+    const bgImage = cmp.get('hero-bg-image') || '';
+    const bgVideo = cmp.get('hero-bg-video') || '';
+    const mediaCmp = cmp.components().filter((c: any) => c.getAttributes()[HERO_MEDIA_ATTR])[0];
+    if (!mediaCmp) return;
+    const el = mediaCmp.getEl();
+    if (!el) return;
+    if (bg === 'image') {
+      const src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
+      el.setAttribute('src', src);
+      mediaCmp.addAttributes({ src });
+    } else if (bg === 'video' && bgVideo) {
+      el.setAttribute('src', bgVideo);
+      mediaCmp.addAttributes({ src: bgVideo });
+      (el as HTMLVideoElement).load();
+    }
   }
 
   editor.Components.addType('hero-pro', {
@@ -419,32 +437,33 @@ export function registerCustomBlocks(editor: Editor) {
             ],
           },
         ],
-        components: buildHeroProChildren('gradient', 'none', 'fade-up', false, '', ''),
+        components: buildHeroProChildren('gradient', 'none', 'fade-up'),
       },
       init() {
-        this.on('change:hero-bg', this.onHeroChange);
-        this.on('change:hero-overlay', this.onHeroChange);
-        this.on('change:hero-text-anim', this.onHeroChange);
-        this.on('change:hero-parallax', this.onHeroChange);
-        this.on('change:hero-height', this.onHeroChange);
-        this.on('change:hero-bg-image', this.onHeroChange);
-        this.on('change:hero-bg-video', this.onHeroChange);
+        this.on('change:hero-bg', this.onHeroRebuild);
+        this.on('change:hero-overlay', this.onHeroRebuild);
+        this.on('change:hero-text-anim', this.onHeroRebuild);
+        this.on('change:hero-parallax', this.onHeroRebuild);
+        this.on('change:hero-height', this.onHeroRebuild);
+        this.on('change:hero-bg-image', this.onHeroMediaChange);
+        this.on('change:hero-bg-video', this.onHeroMediaChange);
       },
-      onHeroChange() {
+      onHeroRebuild() {
         const bg = this.get('hero-bg') || 'gradient';
         const overlay = this.get('hero-overlay') || 'none';
         const anim = this.get('hero-text-anim') || 'fade-up';
-        const parallax = this.get('hero-parallax') === 'on';
         const height = this.get('hero-height') || '500px';
         const h = height === 'fullscreen' ? '100vh' : height;
-        const bgImage = this.get('hero-bg-image') || '';
-        const bgVideo = this.get('hero-bg-video') || '';
 
         const bgStyle = bg === 'gradient' ? 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)' : '#1e293b';
         this.addStyle({ 'min-height': h, background: bgStyle });
 
         this.components().reset();
-        this.components(buildHeroProChildren(bg, overlay, anim, parallax, bgImage, bgVideo));
+        this.components(buildHeroProChildren(bg, overlay, anim));
+        setTimeout(() => applyHeroMedia(this), 50);
+      },
+      onHeroMediaChange() {
+        applyHeroMedia(this);
       },
     },
   });
