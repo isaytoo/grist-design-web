@@ -104,6 +104,43 @@ export function registerCustomBlocks(editor: Editor) {
     </section>`,
   });
 
+  // ── Compression/redimension d'image côté navigateur (réduit le poids base64) ──
+  function compressImage(file: File, maxW = 1920, quality = 0.82): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const src = reader.result as string;
+        // PNG transparents ou GIF : on garde tel quel (pas de recompression JPEG)
+        if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+          resolve(src);
+          return;
+        }
+        const img = new Image();
+        img.onerror = () => resolve(src);
+        img.onload = () => {
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(src); return; }
+          // Fond blanc pour les PNG à transparence convertis en JPEG
+          const hasAlpha = file.type === 'image/png';
+          if (hasAlpha) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+          ctx.drawImage(img, 0, 0, w, h);
+          const out = canvas.toDataURL('image/jpeg', quality);
+          // On garde le résultat le plus léger
+          resolve(out.length < src.length ? out : src);
+        };
+        img.src = src;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ── Custom file upload trait types ──
   editor.Traits.addType('file-image', {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,7 +176,10 @@ export function registerCustomBlocks(editor: Editor) {
       const preview = document.createElement('div');
       preview.style.cssText = 'width:100%;height:48px;border-radius:4px;background:#2a2e3a;background-size:cover;background-position:center;display:none;border:1px solid #444;';
 
-      el.append(textInput, btnRow, preview);
+      const status = document.createElement('div');
+      status.style.cssText = 'font-size:11px;color:#94a3b8;display:none;padding:2px 0;';
+
+      el.append(textInput, btnRow, preview, status);
 
       const showPreview = (url: string) => {
         if (url) { preview.style.backgroundImage = `url('${url}')`; preview.style.display = 'block'; }
@@ -154,13 +194,15 @@ export function registerCustomBlocks(editor: Editor) {
       fileInput.addEventListener('change', () => {
         const file = fileInput.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          const b64 = reader.result as string;
+        status.textContent = 'Optimisation...';
+        status.style.display = 'block';
+        compressImage(file).then((b64) => {
           textInput.value = b64;
+          const origKB = Math.round(file.size / 1024);
+          const newKB = Math.round((b64.length * 0.75) / 1024);
+          status.textContent = `${origKB} Ko → ~${newKB} Ko en base64`;
           commit(b64);
-        };
-        reader.readAsDataURL(file);
+        });
       });
       textInput.addEventListener('change', () => commit(textInput.value));
       clearBtn.addEventListener('click', () => {
