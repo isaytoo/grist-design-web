@@ -366,16 +366,25 @@ export function registerCustomBlocks(editor: Editor) {
     }
   }
 
-  const VIDEO_CHILD = {
-    type: 'default',
-    tagName: 'video',
-    droppable: false,
-    attributes: { autoplay: true, muted: true, loop: true, playsinline: true },
-    style: {
-      position: 'absolute', top: '0', left: '0',
-      width: '100%', height: '100%', 'object-fit': 'cover', 'z-index': '0',
+  // Type dédié : isComponent:false empêche GrapesJS de le détecter comme son
+  // lecteur vidéo natif (qui ajoute contrôles + allowfullscreen et casse le src base64).
+  editor.Components.addType('hero-bg-video', {
+    isComponent: () => false,
+    model: {
+      defaults: {
+        tagName: 'video',
+        droppable: false,
+        highlightable: false,
+        attributes: { autoplay: true, muted: true, loop: true, playsinline: true },
+        style: {
+          position: 'absolute', top: '0', left: '0',
+          width: '100%', height: '100%', 'object-fit': 'cover', 'z-index': '0',
+        },
+      },
     },
-  };
+  });
+
+  const VIDEO_CHILD = { type: 'hero-bg-video' };
 
   function scheduleMediaApply(cmp: any) {
     const bg = cmp.get('hero-bg') || 'gradient';
