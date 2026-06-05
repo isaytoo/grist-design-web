@@ -256,16 +256,14 @@ export function registerCustomBlocks(editor: Editor) {
   });
 
   // ── Hero Pro component type ──
-  const HERO_MEDIA_ATTR = 'data-hero-media';
-
   function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string) {
     const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
 
     let bgLayer = '';
     if (bgType === 'video') {
-      bgLayer = `<video ${HERO_MEDIA_ATTR}="1" autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"></video>`;
+      bgLayer = `<video autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"></video>`;
     } else if (bgType === 'image') {
-      bgLayer = `<img ${HERO_MEDIA_ATTR}="1" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;" />`;
+      bgLayer = `<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;" />`;
     }
 
     const overlays: Record<string, string> = {
@@ -324,16 +322,31 @@ export function registerCustomBlocks(editor: Editor) {
     const sectionEl = cmp.getEl();
     if (!sectionEl) return;
     const bg = cmp.get('hero-bg') || 'gradient';
-    const bgImage = cmp.get('hero-bg-image') || '';
-    const bgVideo = cmp.get('hero-bg-video') || '';
-    const mediaEl = sectionEl.querySelector(`[${HERO_MEDIA_ATTR}]`) as HTMLElement | null;
-    if (!mediaEl) return;
     if (bg === 'image') {
-      (mediaEl as HTMLImageElement).src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
-    } else if (bg === 'video' && bgVideo) {
-      (mediaEl as HTMLVideoElement).src = bgVideo;
-      (mediaEl as HTMLVideoElement).load();
+      const img = sectionEl.querySelector('img');
+      if (!img) return;
+      const bgImage = cmp.get('hero-bg-image') || '';
+      img.src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
+    } else if (bg === 'video') {
+      const video = sectionEl.querySelector('video');
+      if (!video) return;
+      const bgVideo = cmp.get('hero-bg-video') || '';
+      if (bgVideo) { video.src = bgVideo; video.load(); }
     }
+  }
+
+  function scheduleMediaApply(cmp: any) {
+    const tryApply = (attempts: number) => {
+      const el = cmp.getEl();
+      const bg = cmp.get('hero-bg') || 'gradient';
+      const mediaEl = el && (bg === 'image' ? el.querySelector('img') : el.querySelector('video'));
+      if (mediaEl) {
+        applyHeroMedia(cmp);
+      } else if (attempts < 10) {
+        requestAnimationFrame(() => tryApply(attempts + 1));
+      }
+    };
+    requestAnimationFrame(() => tryApply(0));
   }
 
   editor.Components.addType('hero-pro', {
@@ -457,19 +470,17 @@ export function registerCustomBlocks(editor: Editor) {
 
         this.components().reset();
         this.components(buildHeroProChildren(bg, overlay, anim));
-        this._needsMediaApply = true;
+        if (bg !== 'gradient') scheduleMediaApply(this);
       },
       onHeroMediaChange() {
-        this._needsMediaApply = true;
-        applyHeroMedia(this);
+        scheduleMediaApply(this);
       },
     },
     view: {
       onRender() {
         const model = this.model as any;
-        if (model._needsMediaApply || model.get('hero-bg') !== 'gradient') {
-          model._needsMediaApply = false;
-          requestAnimationFrame(() => applyHeroMedia(model));
+        if (model.get('hero-bg') !== 'gradient') {
+          scheduleMediaApply(model);
         }
       },
     },
