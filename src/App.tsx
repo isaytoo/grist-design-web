@@ -70,7 +70,8 @@ export default function App() {
     const { rawHtml, rawCss, rawJs } = getExportData(editor);
     const gjsData = JSON.stringify(editor.getProjectData());
     if (inGrist) {
-      await savePage(pageName, rawHtml, rawCss, rawJs, gjsData, currentPageId);
+      const savedId = await savePage(pageName, rawHtml, rawCss, rawJs, gjsData, currentPageId);
+      if (!currentPageId && savedId) setCurrentPageId(savedId);
     }
     showToast(t('saved'));
   };

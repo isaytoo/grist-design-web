@@ -77,18 +77,20 @@ export async function loadPages(): Promise<SavedPage[]> {
   }
 }
 
-export async function savePage(name: string, html: string, css: string, js: string, gjsData: string, existingId?: number): Promise<void> {
+export async function savePage(name: string, html: string, css: string, js: string, gjsData: string, existingId?: number): Promise<number> {
   const now = Math.floor(Date.now() / 1000);
   if (existingId) {
     await grist.docApi.applyUserActions([['UpdateRecord', PAGES_TABLE, existingId, {
       Page_Name: name, HTML_Content: html, CSS_Content: css, JS_Content: js,
       GrapesJS_Data: gjsData, Updated_At: now,
     }]]);
+    return existingId;
   } else {
-    await grist.docApi.applyUserActions([['AddRecord', PAGES_TABLE, null, {
+    const result = await grist.docApi.applyUserActions([['AddRecord', PAGES_TABLE, null, {
       Page_Name: name, HTML_Content: html, CSS_Content: css, JS_Content: js,
       GrapesJS_Data: gjsData, Created_At: now, Updated_At: now,
     }]]);
+    return result?.retValues?.[0] ?? 0;
   }
 }
 
