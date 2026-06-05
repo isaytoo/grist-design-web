@@ -204,68 +204,113 @@ export function registerCustomBlocks(editor: Editor) {
     </section>`,
   });
 
+  const imgColors = ['667eea', 'f5576c', '4facfe', 'f093fb'];
+  const gradients = [
+    'linear-gradient(135deg,#667eea,#764ba2)',
+    'linear-gradient(135deg,#f093fb,#f5576c)',
+    'linear-gradient(135deg,#4facfe,#00f2fe)',
+    'linear-gradient(135deg,#f5af19,#f12711)',
+  ];
+  const emojis = ['🚀', '🎯', '💡', '⚡'];
+
+  const cardsTrait = {
+    type: 'select' as const,
+    label: 'Nombre de cartes',
+    name: 'card-count',
+    changeProp: true,
+    options: [
+      { id: '1', value: '1', name: '1 carte' },
+      { id: '2', value: '2', name: '2 cartes' },
+      { id: '3', value: '3', name: '3 cartes' },
+      { id: '4', value: '4', name: '4 cartes' },
+    ],
+  };
+
+  function makeImageCard(i: number) {
+    return `<div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
+      <img src="https://placehold.co/600x300/${imgColors[i % imgColors.length]}/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
+      <div style="padding:24px;">
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
+        <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
+        <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
+      </div>
+    </div>`;
+  }
+
+  function makeColorCard(i: number) {
+    return `<div style="border-radius:16px;overflow:hidden;background:${gradients[i % gradients.length]};color:white;padding:40px 28px;">
+      <div style="font-size:40px;margin-bottom:16px;">${emojis[i % emojis.length]}</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">Titre de la carte</h3>
+      <p style="font-size:14px;opacity:0.9;margin-bottom:20px;">Description courte du service ou de la fonctionnalité proposée.</p>
+      <a href="#" style="display:inline-block;padding:8px 20px;background:rgba(255,255,255,0.2);color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,0.3);">En savoir plus</a>
+    </div>`;
+  }
+
+  function cardsCountHandler(this: any, makeCard: (i: number) => string) {
+    const count = parseInt(this.get('card-count') || '3', 10);
+    const grid = this.components().filter((c: any) => c.get('tagName') === 'div')[0];
+    if (!grid) return;
+    const cards = grid.components();
+    const current = cards.length;
+    grid.addStyle({ 'grid-template-columns': `repeat(${Math.min(count, 4)},1fr)` });
+    if (count > current) {
+      for (let i = current; i < count; i++) cards.add(makeCard(i));
+    } else if (count < current) {
+      const toRemove = cards.models.slice(count);
+      toRemove.forEach((c: any) => c.remove());
+    }
+  }
+
+  editor.Components.addType('cards-image-section', {
+    model: {
+      defaults: {
+        tagName: 'section',
+        droppable: false,
+        'card-count': '3',
+        style: { padding: '60px 40px', 'max-width': '1000px', margin: '0 auto' },
+        traits: [cardsTrait],
+        components: `
+          <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+            ${[0, 1, 2].map(makeImageCard).join('')}
+          </div>`,
+      },
+      init() { this.on('change:card-count', this.onCountChange); },
+      onCountChange() { cardsCountHandler.call(this, makeImageCard); },
+    },
+  });
+
+  editor.Components.addType('cards-color-section', {
+    model: {
+      defaults: {
+        tagName: 'section',
+        droppable: false,
+        'card-count': '3',
+        style: { padding: '60px 40px', 'max-width': '1000px', margin: '0 auto' },
+        traits: [cardsTrait],
+        components: `
+          <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+            ${[0, 1, 2].map(makeColorCard).join('')}
+          </div>`,
+      },
+      init() { this.on('change:card-count', this.onCountChange); },
+      onCountChange() { cardsCountHandler.call(this, makeColorCard); },
+    },
+  });
+
   bm.add('cards-image', {
     label: 'Cards Image',
     category: 'Sections',
     media: ICONS.cardsImg,
-    content: `<section style="padding:60px 40px;max-width:1000px;margin:0 auto;">
-      <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
-        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <img src="https://placehold.co/600x300/667eea/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
-          <div style="padding:24px;">
-            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
-            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
-            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
-          </div>
-        </div>
-        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <img src="https://placehold.co/600x300/f5576c/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
-          <div style="padding:24px;">
-            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
-            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
-            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
-          </div>
-        </div>
-        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <img src="https://placehold.co/600x300/4facfe/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
-          <div style="padding:24px;">
-            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
-            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
-            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
-          </div>
-        </div>
-      </div>
-    </section>`,
+    content: { type: 'cards-image-section' },
   });
 
   bm.add('cards-color', {
     label: 'Cards Couleur',
     category: 'Sections',
     media: ICONS.cardsColor,
-    content: `<section style="padding:60px 40px;max-width:1000px;margin:0 auto;">
-      <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
-        <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:40px 28px;">
-          <div style="font-size:40px;margin-bottom:16px;">🚀</div>
-          <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">Titre de la carte</h3>
-          <p style="font-size:14px;opacity:0.9;margin-bottom:20px;">Description courte du service ou de la fonctionnalité proposée.</p>
-          <a href="#" style="display:inline-block;padding:8px 20px;background:rgba(255,255,255,0.2);color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,0.3);">En savoir plus</a>
-        </div>
-        <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:40px 28px;">
-          <div style="font-size:40px;margin-bottom:16px;">🎯</div>
-          <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">Titre de la carte</h3>
-          <p style="font-size:14px;opacity:0.9;margin-bottom:20px;">Description courte du service ou de la fonctionnalité proposée.</p>
-          <a href="#" style="display:inline-block;padding:8px 20px;background:rgba(255,255,255,0.2);color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,0.3);">En savoir plus</a>
-        </div>
-        <div style="border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:40px 28px;">
-          <div style="font-size:40px;margin-bottom:16px;">💡</div>
-          <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">Titre de la carte</h3>
-          <p style="font-size:14px;opacity:0.9;margin-bottom:20px;">Description courte du service ou de la fonctionnalité proposée.</p>
-          <a href="#" style="display:inline-block;padding:8px 20px;background:rgba(255,255,255,0.2);color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,0.3);">En savoir plus</a>
-        </div>
-      </div>
-    </section>`,
+    content: { type: 'cards-color-section' },
   });
 
   bm.add('navbar-block', {
