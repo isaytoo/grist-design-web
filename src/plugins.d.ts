@@ -4,7 +4,6 @@ declare module 'grapesjs-custom-code';
 declare module 'grapesjs-tooltip';
 declare module 'grapesjs-typed';
 declare module 'grapesjs-navbar';
-declare module 'grapesjs-lory-slider';
 declare module 'grapesjs-tui-image-editor';
 declare module 'grapesjs-style-bg';
 declare module 'grapesjs-parser-postcss';

@@ -11,7 +11,6 @@ import pluginCustomCode from 'grapesjs-custom-code';
 import pluginTooltip from 'grapesjs-tooltip';
 import pluginTyped from 'grapesjs-typed';
 import pluginNavbar from 'grapesjs-navbar';
-import pluginSlider from 'grapesjs-lory-slider';
 import pluginImageEditor from 'grapesjs-tui-image-editor';
 import pluginStyleBg from 'grapesjs-style-bg';
 import pluginParserPostcss from 'grapesjs-parser-postcss';
@@ -188,7 +187,6 @@ export default function App() {
                 (unwrap(pluginTabs) as Function)(editor, { tabsBlock: { category: 'Extra' } });
                 (unwrap(pluginTyped) as Function)(editor, { block: { category: 'Extra' } });
                 (unwrap(pluginNavbar) as Function)(editor, {});
-                (unwrap(pluginSlider) as Function)(editor, { sliderBlock: { category: 'Extra' } });
               },
               pluginForms,
               pluginCountdown,

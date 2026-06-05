@@ -17,6 +17,7 @@ const ICONS = {
   separator: svgIcon('<line x1="8" y1="32" x2="56" y2="32"/>'),
   spacer: svgIcon('<line x1="32" y1="12" x2="32" y2="22"/><line x1="28" y1="16" x2="32" y2="12"/><line x1="36" y1="16" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="42"/><line x1="28" y1="48" x2="32" y2="52"/><line x1="36" y1="48" x2="32" y2="52"/>'),
   div: svgIcon('<rect x="10" y="14" width="44" height="36" rx="2" stroke-dasharray="4,3"/><text x="24" y="36" fill="currentColor" stroke="none" font-size="12">Div</text>'),
+  slider: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M12 32l6-6v12z" fill="currentColor" stroke="none"/><path d="M52 32l-6-6v12z" fill="currentColor" stroke="none"/><circle cx="28" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="32" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="2" fill="currentColor" stroke="none"/>'),
 };
 
 export function registerCustomBlocks(editor: Editor) {
@@ -182,6 +183,30 @@ export function registerCustomBlocks(editor: Editor) {
         <a href="#" style="color:#94a3b8;text-decoration:none;">Contact</a>
       </div>
     </footer>`,
+  });
+
+  bm.add('slider-block', {
+    label: 'Slider',
+    category: 'Extra',
+    media: ICONS.slider,
+    content: `<div class="simple-slider" style="position:relative;overflow:hidden;width:100%;max-width:900px;margin:0 auto;">
+      <div class="slider-track" style="display:flex;transition:transform 0.5s ease;">
+        <div class="slider-slide" style="min-width:100%;padding:60px 40px;text-align:center;background:linear-gradient(135deg,#667eea,#764ba2);color:white;">
+          <h2 style="font-size:32px;font-weight:800;">Slide 1</h2>
+          <p style="font-size:16px;opacity:0.9;">Description de la première slide</p>
+        </div>
+        <div class="slider-slide" style="min-width:100%;padding:60px 40px;text-align:center;background:linear-gradient(135deg,#f093fb,#f5576c);color:white;">
+          <h2 style="font-size:32px;font-weight:800;">Slide 2</h2>
+          <p style="font-size:16px;opacity:0.9;">Description de la deuxième slide</p>
+        </div>
+        <div class="slider-slide" style="min-width:100%;padding:60px 40px;text-align:center;background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;">
+          <h2 style="font-size:32px;font-weight:800;">Slide 3</h2>
+          <p style="font-size:16px;opacity:0.9;">Description de la troisième slide</p>
+        </div>
+      </div>
+      <button class="slider-prev" style="position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;" onclick="(function(b){var s=b.closest('.simple-slider').querySelector('.slider-track');var w=s.parentElement.offsetWidth;var m=-(s.children.length-1)*w;var t=parseFloat(s.style.transform.replace('translateX(','').replace('px)',''))||0;s.style.transform='translateX('+Math.min(0,t+w)+'px)'})(this)">‹</button>
+      <button class="slider-next" style="position:absolute;top:50%;right:10px;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;" onclick="(function(b){var s=b.closest('.simple-slider').querySelector('.slider-track');var w=s.parentElement.offsetWidth;var m=-(s.children.length-1)*w;var t=parseFloat(s.style.transform.replace('translateX(','').replace('px)',''))||0;s.style.transform='translateX('+Math.max(m,t-w)+'px)'})(this)">›</button>
+    </div>`,
   });
 
   bm.add('separator', {
