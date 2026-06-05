@@ -10,6 +10,12 @@ import pluginTabs from 'grapesjs-tabs';
 import pluginCustomCode from 'grapesjs-custom-code';
 import pluginTooltip from 'grapesjs-tooltip';
 import pluginTyped from 'grapesjs-typed';
+import pluginNavbar from 'grapesjs-navbar';
+import pluginSlider from 'grapesjs-lory-slider';
+import pluginImageEditor from 'grapesjs-tui-image-editor';
+import pluginStyleBg from 'grapesjs-style-bg';
+import pluginParserPostcss from 'grapesjs-parser-postcss';
+import pluginExport from 'grapesjs-plugin-export';
 import { registerCustomBlocks } from './blocks';
 import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
@@ -175,16 +181,21 @@ export default function App() {
             plugins: [
               presetWebpage,
               (editor: Editor) => {
-                // Unwrap UMD .default for plugins that use that pattern
                 const unwrap = (p: unknown) => (p as { default?: Function }).default ?? p;
                 (unwrap(blocksBasic) as Function)(editor, { flexGrid: true });
-                (unwrap(pluginTabs) as Function)(editor, {});
-                (unwrap(pluginTyped) as Function)(editor, {});
+                (unwrap(pluginTabs) as Function)(editor, { tabsBlock: { category: 'Extra' } });
+                (unwrap(pluginTyped) as Function)(editor, { block: { category: 'Extra' } });
+                (unwrap(pluginNavbar) as Function)(editor, {});
+                (unwrap(pluginSlider) as Function)(editor, { sliderBlock: { category: 'Extra' } });
               },
               pluginForms,
               pluginCountdown,
               pluginCustomCode,
               pluginTooltip,
+              pluginImageEditor,
+              pluginStyleBg,
+              pluginParserPostcss,
+              pluginExport,
             ],
           }}
         />
