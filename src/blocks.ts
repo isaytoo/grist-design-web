@@ -243,9 +243,9 @@ export function registerCustomBlocks(editor: Editor) {
     let bgLayer = '';
     if (bgType === 'video') {
       bgLayer = `<video autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"></video>`;
-    } else if (bgType === 'image') {
-      bgLayer = `<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;" />`;
     }
+    // Le mode "image" utilise un background-image CSS sur la section (via addStyle),
+    // exporté de façon fiable par getCss() — pas de balise <img>.
 
     const overlays: Record<string, string> = {
       none: '',
@@ -304,12 +304,16 @@ export function registerCustomBlocks(editor: Editor) {
     const bg = cmp.get('hero-bg') || 'gradient';
     if (bg === 'image') {
       const src = cmp.get('hero-bg-image') || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
-      // Persister dans le modèle (pour l'export HTML/ZIP)
-      const imgComp = cmp.find('img')[0];
-      if (imgComp && imgComp.getAttributes().src !== src) imgComp.addAttributes({ src });
-      // Injecter aussi sur le DOM live (preview immédiat)
-      const img = sectionEl?.querySelector('img');
-      if (img && img.getAttribute('src') !== src) img.src = src;
+      const parallax = cmp.get('hero-parallax') === 'on';
+      // background-image CSS sur la section : présent dans getCss() → export fiable
+      cmp.addStyle({
+        'background-color': '#1e293b',
+        'background-image': `url("${src}")`,
+        'background-size': 'cover',
+        'background-position': 'center',
+        'background-repeat': 'no-repeat',
+        'background-attachment': parallax ? 'fixed' : 'scroll',
+      });
     } else if (bg === 'video') {
       const src = cmp.get('hero-bg-video') || '';
       if (!src) return;
@@ -321,10 +325,12 @@ export function registerCustomBlocks(editor: Editor) {
   }
 
   function scheduleMediaApply(cmp: any) {
+    const bg = cmp.get('hero-bg') || 'gradient';
+    // Mode image : pas d'élément DOM à attendre, on applique le style directement
+    if (bg === 'image') { applyHeroMedia(cmp); return; }
     const tryApply = (attempts: number) => {
       const el = cmp.getEl();
-      const bg = cmp.get('hero-bg') || 'gradient';
-      const mediaEl = el && (bg === 'image' ? el.querySelector('img') : el.querySelector('video'));
+      const mediaEl = el && el.querySelector('video');
       if (mediaEl) {
         applyHeroMedia(cmp);
       } else if (attempts < 10) {
