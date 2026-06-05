@@ -104,6 +104,157 @@ export function registerCustomBlocks(editor: Editor) {
     </section>`,
   });
 
+  // ── Custom file upload trait types ──
+  editor.Traits.addType('file-image', {
+    createInput({ trait }: { trait: any }) {
+      const el = document.createElement('div');
+      el.style.cssText = 'display:flex;flex-direction:column;gap:4px;width:100%;';
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.placeholder = 'URL ou glisser image...';
+      textInput.value = trait.get('value') || '';
+      textInput.style.cssText = 'width:100%;padding:5px 8px;border:1px solid #444;border-radius:4px;background:#363b4a;color:#ddd;font-size:12px;box-sizing:border-box;';
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:4px;';
+
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:4px;padding:5px 10px;background:#3b82f6;color:white;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;flex:1;justify-content:center;';
+      label.textContent = 'Choisir image';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.style.display = 'none';
+      label.prepend(fileInput);
+
+      const clearBtn = document.createElement('button');
+      clearBtn.textContent = 'X';
+      clearBtn.style.cssText = 'padding:5px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;';
+
+      btnRow.append(label, clearBtn);
+
+      const preview = document.createElement('div');
+      preview.style.cssText = 'width:100%;height:48px;border-radius:4px;background:#2a2e3a;background-size:cover;background-position:center;display:none;border:1px solid #444;';
+
+      el.append(textInput, btnRow, preview);
+
+      const showPreview = (url: string) => {
+        if (url) { preview.style.backgroundImage = `url('${url}')`; preview.style.display = 'block'; }
+        else { preview.style.display = 'none'; preview.style.backgroundImage = ''; }
+      };
+      showPreview(textInput.value);
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = reader.result as string;
+          textInput.value = b64;
+          showPreview(b64);
+          el.dispatchEvent(new Event('change'));
+        };
+        reader.readAsDataURL(file);
+      });
+      textInput.addEventListener('change', () => {
+        showPreview(textInput.value);
+        el.dispatchEvent(new Event('change'));
+      });
+      clearBtn.addEventListener('click', () => {
+        textInput.value = '';
+        showPreview('');
+        el.dispatchEvent(new Event('change'));
+      });
+      (el as any).__textInput = textInput;
+      return el;
+    },
+    onEvent({ elInput, component }: { elInput: HTMLElement; component: any }) {
+      const val = (elInput as any).__textInput?.value || '';
+      component.set('hero-bg-image', val);
+    },
+    onUpdate({ elInput, component }: { elInput: HTMLElement; component: any }) {
+      const inp = (elInput as any).__textInput;
+      if (inp) {
+        const val = component.get('hero-bg-image') || '';
+        inp.value = val;
+        const preview = elInput.querySelector('div:last-child') as HTMLElement;
+        if (preview) {
+          if (val) { preview.style.backgroundImage = `url('${val}')`; preview.style.display = 'block'; }
+          else { preview.style.display = 'none'; }
+        }
+      }
+    },
+  });
+
+  editor.Traits.addType('file-video', {
+    createInput({ trait }: { trait: any }) {
+      const el = document.createElement('div');
+      el.style.cssText = 'display:flex;flex-direction:column;gap:4px;width:100%;';
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.placeholder = 'URL ou choisir vidéo...';
+      textInput.value = trait.get('value') || '';
+      textInput.style.cssText = 'width:100%;padding:5px 8px;border:1px solid #444;border-radius:4px;background:#363b4a;color:#ddd;font-size:12px;box-sizing:border-box;';
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:4px;';
+
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:4px;padding:5px 10px;background:#8b5cf6;color:white;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;flex:1;justify-content:center;';
+      label.textContent = 'Choisir vidéo';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'video/mp4,video/webm,video/ogg';
+      fileInput.style.display = 'none';
+      label.prepend(fileInput);
+
+      const clearBtn = document.createElement('button');
+      clearBtn.textContent = 'X';
+      clearBtn.style.cssText = 'padding:5px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;';
+
+      btnRow.append(label, clearBtn);
+
+      const status = document.createElement('div');
+      status.style.cssText = 'font-size:11px;color:#94a3b8;display:none;padding:2px 0;';
+
+      el.append(textInput, btnRow, status);
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        status.textContent = 'Conversion en cours...';
+        status.style.display = 'block';
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b64 = reader.result as string;
+          textInput.value = b64;
+          const sizeMB = (b64.length / 1024 / 1024).toFixed(1);
+          status.textContent = `Vidéo chargée (${sizeMB} MB en base64)`;
+          el.dispatchEvent(new Event('change'));
+        };
+        reader.readAsDataURL(file);
+      });
+      textInput.addEventListener('change', () => {
+        el.dispatchEvent(new Event('change'));
+      });
+      clearBtn.addEventListener('click', () => {
+        textInput.value = '';
+        status.style.display = 'none';
+        el.dispatchEvent(new Event('change'));
+      });
+      (el as any).__textInput = textInput;
+      return el;
+    },
+    onEvent({ elInput, component }: { elInput: HTMLElement; component: any }) {
+      const val = (elInput as any).__textInput?.value || '';
+      component.set('hero-bg-video', val);
+    },
+    onUpdate({ elInput, component }: { elInput: HTMLElement; component: any }) {
+      const inp = (elInput as any).__textInput;
+      if (inp) inp.value = component.get('hero-bg-video') || '';
+    },
+  });
+
   // ── Hero Pro component type ──
   function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string, parallax: boolean, bgImage: string, bgVideo: string) {
     const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
@@ -203,18 +354,16 @@ export function registerCustomBlocks(editor: Editor) {
             ],
           },
           {
-            type: 'text' as const,
-            label: 'URL image de fond',
+            type: 'file-image',
+            label: 'Image de fond',
             name: 'hero-bg-image',
             changeProp: true,
-            placeholder: 'https://...',
           },
           {
-            type: 'text' as const,
-            label: 'URL vidéo (mp4)',
+            type: 'file-video',
+            label: 'Vidéo de fond',
             name: 'hero-bg-video',
             changeProp: true,
-            placeholder: 'https://...video.mp4',
           },
           {
             type: 'select' as const,
