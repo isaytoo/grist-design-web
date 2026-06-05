@@ -301,18 +301,22 @@ export function registerCustomBlocks(editor: Editor) {
 
   function applyHeroMedia(cmp: any) {
     const sectionEl = cmp.getEl();
-    if (!sectionEl) return;
     const bg = cmp.get('hero-bg') || 'gradient';
     if (bg === 'image') {
-      const img = sectionEl.querySelector('img');
-      if (!img) return;
-      const bgImage = cmp.get('hero-bg-image') || '';
-      img.src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
+      const src = cmp.get('hero-bg-image') || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
+      // Persister dans le modèle (pour l'export HTML/ZIP)
+      const imgComp = cmp.find('img')[0];
+      if (imgComp && imgComp.getAttributes().src !== src) imgComp.addAttributes({ src });
+      // Injecter aussi sur le DOM live (preview immédiat)
+      const img = sectionEl?.querySelector('img');
+      if (img && img.getAttribute('src') !== src) img.src = src;
     } else if (bg === 'video') {
-      const video = sectionEl.querySelector('video');
-      if (!video) return;
-      const bgVideo = cmp.get('hero-bg-video') || '';
-      if (bgVideo) { video.src = bgVideo; video.load(); }
+      const src = cmp.get('hero-bg-video') || '';
+      if (!src) return;
+      const videoComp = cmp.find('video')[0];
+      if (videoComp && videoComp.getAttributes().src !== src) videoComp.addAttributes({ src });
+      const video = sectionEl?.querySelector('video') as HTMLVideoElement | null;
+      if (video && video.getAttribute('src') !== src) { video.src = src; video.load(); }
     }
   }
 
