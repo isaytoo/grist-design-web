@@ -226,6 +226,105 @@ export function registerCustomBlocks(editor: Editor) {
     ],
   };
 
+  const hoverTrait = {
+    type: 'select' as const,
+    label: 'Effet au survol',
+    name: 'card-hover',
+    changeProp: true,
+    options: [
+      { id: 'none', value: 'none', name: 'Aucun' },
+      { id: 'lift', value: 'lift', name: 'Lift (élévation)' },
+      { id: 'scale', value: 'scale', name: 'Scale (zoom)' },
+      { id: 'glow', value: 'glow', name: 'Glow (lueur)' },
+      { id: 'border', value: 'border', name: 'Bordure colorée' },
+    ],
+  };
+
+  const entranceTrait = {
+    type: 'select' as const,
+    label: 'Animation entrée',
+    name: 'card-entrance',
+    changeProp: true,
+    options: [
+      { id: 'none', value: 'none', name: 'Aucune' },
+      { id: 'fade-up', value: 'fade-up', name: 'Fade up' },
+      { id: 'fade-in', value: 'fade-in', name: 'Fade in' },
+      { id: 'slide-left', value: 'slide-left', name: 'Slide depuis gauche' },
+      { id: 'zoom-in', value: 'zoom-in', name: 'Zoom in' },
+    ],
+  };
+
+  const hoverStyles: Record<string, string> = {
+    none: '',
+    lift: 'transform:translateY(-8px);box-shadow:0 12px 32px rgba(0,0,0,0.12);',
+    scale: 'transform:scale(1.05);box-shadow:0 8px 24px rgba(0,0,0,0.1);',
+    glow: 'box-shadow:0 0 24px rgba(59,130,246,0.4);',
+    border: 'border-color:#3b82f6 !important;box-shadow:0 0 0 2px #3b82f6;',
+  };
+
+  const entranceKeyframes: Record<string, string> = {
+    'fade-up': '@keyframes cardFadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}',
+    'fade-in': '@keyframes cardFadeIn{from{opacity:0}to{opacity:1}}',
+    'slide-left': '@keyframes cardSlideLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}',
+    'zoom-in': '@keyframes cardZoomIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}',
+  };
+
+  const entranceAnimName: Record<string, string> = {
+    'fade-up': 'cardFadeUp',
+    'fade-in': 'cardFadeIn',
+    'slide-left': 'cardSlideLeft',
+    'zoom-in': 'cardZoomIn',
+  };
+
+  function applyEffects(this: any) {
+    const hover = this.get('card-hover') || 'none';
+    const entrance = this.get('card-entrance') || 'none';
+    const id = this.ccid || this.cid;
+
+    let existingStyle = this.components().filter((c: any) => c.get('tagName') === 'style')[0];
+    if (existingStyle) existingStyle.remove();
+
+    let existingScript = this.components().filter((c: any) => c.get('tagName') === 'script')[0];
+    if (existingScript) existingScript.remove();
+
+    let css = '';
+
+    if (hover !== 'none') {
+      css += `[data-cards-id="${id}"] > div > div{transition:transform 0.3s ease,box-shadow 0.3s ease,border-color 0.3s ease;}`;
+      css += `[data-cards-id="${id}"] > div > div:hover{${hoverStyles[hover]}}`;
+    }
+
+    if (entrance !== 'none') {
+      css += entranceKeyframes[entrance];
+      css += `[data-cards-id="${id}"] > div > div{opacity:0;}`;
+      css += `[data-cards-id="${id}"] > div > div.card-visible{animation:${entranceAnimName[entrance]} 0.6s ease forwards;}`;
+    }
+
+    if (css) {
+      this.components().add({ tagName: 'style', content: css, layerable: false }, { at: 0 });
+    }
+
+    this.addAttributes({ 'data-cards-id': id });
+
+    if (entrance !== 'none') {
+      const scriptContent = `(function(){
+        var el=document.querySelector('[data-cards-id="${id}"]');
+        if(!el)return;
+        var cards=el.querySelectorAll(':scope > div > div');
+        var obs=new IntersectionObserver(function(entries){
+          entries.forEach(function(e,i){
+            if(e.isIntersecting){
+              setTimeout(function(){e.target.classList.add('card-visible')},i*150);
+              obs.unobserve(e.target);
+            }
+          });
+        },{threshold:0.15});
+        cards.forEach(function(c){obs.observe(c)});
+      })();`;
+      this.components().add({ tagName: 'script', content: scriptContent, layerable: false });
+    }
+  }
+
   function makeImageCard(i: number) {
     return `<div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
       <img src="https://placehold.co/600x300/${imgColors[i % imgColors.length]}/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
@@ -267,16 +366,23 @@ export function registerCustomBlocks(editor: Editor) {
         tagName: 'section',
         droppable: false,
         'card-count': '3',
+        'card-hover': 'none',
+        'card-entrance': 'none',
         style: { padding: '60px 40px', 'max-width': '1000px', margin: '0 auto' },
-        traits: [cardsTrait],
+        traits: [cardsTrait, hoverTrait, entranceTrait],
         components: `
           <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
             ${[0, 1, 2].map(makeImageCard).join('')}
           </div>`,
       },
-      init() { this.on('change:card-count', this.onCountChange); },
+      init() {
+        this.on('change:card-count', this.onCountChange);
+        this.on('change:card-hover', this.onEffectChange);
+        this.on('change:card-entrance', this.onEffectChange);
+      },
       onCountChange() { cardsCountHandler.call(this, makeImageCard); },
+      onEffectChange() { applyEffects.call(this); },
     },
   });
 
@@ -286,16 +392,23 @@ export function registerCustomBlocks(editor: Editor) {
         tagName: 'section',
         droppable: false,
         'card-count': '3',
+        'card-hover': 'none',
+        'card-entrance': 'none',
         style: { padding: '60px 40px', 'max-width': '1000px', margin: '0 auto' },
-        traits: [cardsTrait],
+        traits: [cardsTrait, hoverTrait, entranceTrait],
         components: `
           <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
             ${[0, 1, 2].map(makeColorCard).join('')}
           </div>`,
       },
-      init() { this.on('change:card-count', this.onCountChange); },
+      init() {
+        this.on('change:card-count', this.onCountChange);
+        this.on('change:card-hover', this.onEffectChange);
+        this.on('change:card-entrance', this.onEffectChange);
+      },
       onCountChange() { cardsCountHandler.call(this, makeColorCard); },
+      onEffectChange() { applyEffects.call(this); },
     },
   });
 
