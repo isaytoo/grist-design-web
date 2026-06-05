@@ -18,6 +18,7 @@ const ICONS = {
   spacer: svgIcon('<line x1="32" y1="12" x2="32" y2="22"/><line x1="28" y1="16" x2="32" y2="12"/><line x1="36" y1="16" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="42"/><line x1="28" y1="48" x2="32" y2="52"/><line x1="36" y1="48" x2="32" y2="52"/>'),
   div: svgIcon('<rect x="10" y="14" width="44" height="36" rx="2" stroke-dasharray="4,3"/><text x="24" y="36" fill="currentColor" stroke="none" font-size="12">Div</text>'),
   slider: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M12 32l6-6v12z" fill="currentColor" stroke="none"/><path d="M52 32l-6-6v12z" fill="currentColor" stroke="none"/><circle cx="28" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="32" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="2" fill="currentColor" stroke="none"/>'),
+  cards: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="20" x2="17" y2="20"/><line x1="27" y1="20" x2="37" y2="20"/><line x1="47" y1="20" x2="57" y2="20"/><line x1="7" y1="26" x2="14" y2="26"/><line x1="27" y1="26" x2="34" y2="26"/><line x1="47" y1="26" x2="54" y2="26"/><rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="27" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="47" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/>'),
 };
 
 export function registerCustomBlocks(editor: Editor) {
@@ -153,6 +154,41 @@ export function registerCustomBlocks(editor: Editor) {
       <div style="padding:16px 0;">
         <h4 style="font-weight:700;margin-bottom:8px;">Puis-je exporter mon code ?</h4>
         <p style="color:#64748b;font-size:14px;">Oui, exportez en HTML/JS ou téléchargez un fichier ZIP prêt à l'emploi.</p>
+      </div>
+    </section>`,
+  });
+
+  bm.add('cards-section', {
+    label: 'Cards',
+    category: 'Sections',
+    media: ICONS.cards,
+    content: `<section style="padding:60px 40px;max-width:1000px;margin:0 auto;">
+      <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
+          <div style="height:160px;background:linear-gradient(135deg,#667eea,#764ba2);"></div>
+          <div style="padding:24px;">
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
+            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
+            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
+          </div>
+        </div>
+        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
+          <div style="height:160px;background:linear-gradient(135deg,#f093fb,#f5576c);"></div>
+          <div style="padding:24px;">
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
+            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
+            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
+          </div>
+        </div>
+        <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
+          <div style="height:160px;background:linear-gradient(135deg,#4facfe,#00f2fe);"></div>
+          <div style="padding:24px;">
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
+            <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
+            <a href="#" style="display:inline-block;padding:8px 20px;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">En savoir plus</a>
+          </div>
+        </div>
       </div>
     </section>`,
   });
