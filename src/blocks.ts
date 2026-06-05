@@ -16,6 +16,7 @@ const ICONS = {
   footer: svgIcon('<rect x="4" y="36" width="56" height="20" rx="4"/><line x1="14" y1="46" x2="50" y2="46"/><line x1="20" y1="52" x2="44" y2="52"/>'),
   separator: svgIcon('<line x1="8" y1="32" x2="56" y2="32"/>'),
   spacer: svgIcon('<line x1="32" y1="12" x2="32" y2="22"/><line x1="28" y1="16" x2="32" y2="12"/><line x1="36" y1="16" x2="32" y2="12"/><line x1="32" y1="52" x2="32" y2="42"/><line x1="28" y1="48" x2="32" y2="52"/><line x1="36" y1="48" x2="32" y2="52"/>'),
+  container: svgIcon('<rect x="12" y="10" width="40" height="44" rx="3"/><line x1="12" y1="10" x2="12" y2="54"/><line x1="52" y1="10" x2="52" y2="54"/><line x1="16" y1="6" x2="12" y2="10"/><line x1="8" y1="10" x2="12" y2="6" stroke="none"/><path d="M8 32 l4-3 v6z" fill="currentColor" stroke="none"/><path d="M56 32 l-4-3 v6z" fill="currentColor" stroke="none"/>'),
   div: svgIcon('<rect x="10" y="14" width="44" height="36" rx="2" stroke-dasharray="4,3"/><text x="24" y="36" fill="currentColor" stroke="none" font-size="12">Div</text>'),
   slider: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M12 32l6-6v12z" fill="currentColor" stroke="none"/><path d="M52 32l-6-6v12z" fill="currentColor" stroke="none"/><circle cx="28" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="32" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="2" fill="currentColor" stroke="none"/>'),
   cardsImg: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="20" x2="17" y2="20"/><line x1="27" y1="20" x2="37" y2="20"/><line x1="47" y1="20" x2="57" y2="20"/><line x1="7" y1="26" x2="14" y2="26"/><line x1="27" y1="26" x2="34" y2="26"/><line x1="47" y1="26" x2="54" y2="26"/><rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="27" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="47" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/>'),
@@ -24,6 +25,50 @@ const ICONS = {
 
 export function registerCustomBlocks(editor: Editor) {
   const bm = editor.Blocks;
+
+  editor.Components.addType('container', {
+    model: {
+      defaults: {
+        tagName: 'div',
+        droppable: true,
+        attributes: { 'data-gjs-type': 'container' },
+        style: {
+          'max-width': '1200px',
+          'margin': '0 auto',
+          'padding': '20px 40px',
+        },
+        traits: [
+          {
+            type: 'select',
+            label: 'Largeur max',
+            name: 'data-width',
+            changeProp: true,
+            options: [
+              { id: '960px', value: '960px', name: '960px — Compact' },
+              { id: '1080px', value: '1080px', name: '1080px — Medium' },
+              { id: '1200px', value: '1200px', name: '1200px — Standard' },
+              { id: '1400px', value: '1400px', name: '1400px — Large' },
+              { id: '100%', value: '100%', name: '100% — Pleine largeur' },
+            ],
+          },
+        ],
+      },
+      init() {
+        this.on('change:data-width', this.onWidthChange);
+      },
+      onWidthChange() {
+        const w = this.get('data-width') || '1200px';
+        this.addStyle({ 'max-width': w });
+      },
+    },
+  });
+
+  bm.add('container-block', {
+    label: 'Container',
+    category: 'Basic',
+    media: ICONS.container,
+    content: { type: 'container' },
+  });
 
   bm.add('div-block', {
     label: 'Div',
