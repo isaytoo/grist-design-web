@@ -261,10 +261,12 @@ export function registerCustomBlocks(editor: Editor) {
 
     let bgLayer = '';
     if (bgType === 'video') {
-      bgLayer = `<video class="${uid}-video" autoplay muted loop playsinline style="position:absolute;top:50%;left:50%;min-width:100%;min-height:100%;transform:translate(-50%,-50%);object-fit:cover;z-index:0;"${bgVideo ? ` src="${bgVideo}"` : ''}>
+      bgLayer = `<video class="${uid}-video" autoplay muted loop playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;"${bgVideo ? ` src="${bgVideo}"` : ''}>
         </video>`;
     } else if (bgType === 'image') {
-      bgLayer = `<div class="${uid}-bgimg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:url('${bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image'}') center/cover no-repeat;z-index:0;${parallax ? 'background-attachment:fixed;' : ''}"></div>`;
+      const src = bgImage || 'https://placehold.co/1920x900/667eea/white?text=Hero+Image';
+      const parallaxStyle = parallax ? 'position:fixed;top:0;left:0;width:100vw;height:100vh;' : 'position:absolute;top:0;left:0;width:100%;height:100%;';
+      bgLayer = `<img class="${uid}-bgimg" src="${src}" alt="" style="${parallaxStyle}object-fit:cover;z-index:0;pointer-events:none;" />`;
     }
 
     const overlays: Record<string, string> = {
@@ -438,7 +440,7 @@ export function registerCustomBlocks(editor: Editor) {
         const bgImage = this.get('hero-bg-image') || '';
         const bgVideo = this.get('hero-bg-video') || '';
 
-        const bgStyle = bg === 'gradient' ? 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)' : 'none';
+        const bgStyle = bg === 'gradient' ? 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)' : '#1e293b';
         this.addStyle({ 'min-height': h, background: bgStyle });
 
         this.components().reset();
