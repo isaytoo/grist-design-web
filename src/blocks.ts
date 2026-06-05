@@ -105,9 +105,8 @@ export function registerCustomBlocks(editor: Editor) {
   });
 
   // ── Hero Pro component type ──
-  function buildHeroProHtml(bgType: string, overlayStyle: string, textAnim: string, parallax: boolean, heroHeight: string, bgImage: string, bgVideo: string) {
+  function buildHeroProChildren(bgType: string, overlayStyle: string, textAnim: string, parallax: boolean, bgImage: string, bgVideo: string) {
     const uid = 'hero-' + Math.random().toString(36).slice(2, 8);
-    const h = heroHeight === 'fullscreen' ? '100vh' : heroHeight;
 
     let bgLayer = '';
     if (bgType === 'video') {
@@ -160,23 +159,19 @@ export function registerCustomBlocks(editor: Editor) {
       }
     }
 
-    const gradientBg = bgType === 'gradient' ? 'background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);' : '';
-
-    return `<section class="${uid}" style="position:relative;overflow:hidden;${gradientBg}color:white;min-height:${h};display:flex;align-items:center;justify-content:center;">
-      ${bgLayer}${overlayEl}
+    return `${bgLayer}${overlayEl}
       <div class="${uid}-content ${textAnimClass}" style="position:relative;z-index:2;text-align:center;max-width:800px;padding:80px 40px;">
         <h1 style="font-size:56px;font-weight:900;margin-bottom:20px;text-shadow:0 2px 20px rgba(0,0,0,0.3);line-height:1.1;">Titre principal</h1>
         <p style="font-size:22px;opacity:0.92;margin-bottom:36px;text-shadow:0 1px 10px rgba(0,0,0,0.2);line-height:1.6;">Description courte de votre projet ou produit avec un texte accrocheur</p>
         <a href="#" style="display:inline-block;background:white;color:#764ba2;padding:16px 36px;border-radius:8px;font-weight:700;text-decoration:none;font-size:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:transform 0.2s,box-shadow 0.2s;">Commencer</a>
       </div>
-      ${css ? `<style>${css}</style>` : ''}
-    </section>`;
+      ${css ? `<style>${css}</style>` : ''}`;
   }
 
   editor.Components.addType('hero-pro', {
     model: {
       defaults: {
-        tagName: 'div',
+        tagName: 'section',
         droppable: false,
         'hero-bg': 'gradient',
         'hero-overlay': 'none',
@@ -185,6 +180,16 @@ export function registerCustomBlocks(editor: Editor) {
         'hero-height': '500px',
         'hero-bg-image': '',
         'hero-bg-video': '',
+        style: {
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+          color: 'white',
+          'min-height': '500px',
+          display: 'flex',
+          'align-items': 'center',
+          'justify-content': 'center',
+        },
         traits: [
           {
             type: 'select' as const,
@@ -263,7 +268,7 @@ export function registerCustomBlocks(editor: Editor) {
             ],
           },
         ],
-        components: buildHeroProHtml('gradient', 'none', 'fade-up', false, '500px', '', ''),
+        components: buildHeroProChildren('gradient', 'none', 'fade-up', false, '', ''),
       },
       init() {
         this.on('change:hero-bg', this.onHeroChange);
@@ -280,10 +285,15 @@ export function registerCustomBlocks(editor: Editor) {
         const anim = this.get('hero-text-anim') || 'fade-up';
         const parallax = this.get('hero-parallax') === 'on';
         const height = this.get('hero-height') || '500px';
+        const h = height === 'fullscreen' ? '100vh' : height;
         const bgImage = this.get('hero-bg-image') || '';
         const bgVideo = this.get('hero-bg-video') || '';
+
+        const bgStyle = bg === 'gradient' ? 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)' : 'none';
+        this.addStyle({ 'min-height': h, background: bgStyle });
+
         this.components().reset();
-        this.components(buildHeroProHtml(bg, overlay, anim, parallax, height, bgImage, bgVideo));
+        this.components(buildHeroProChildren(bg, overlay, anim, parallax, bgImage, bgVideo));
       },
     },
   });
