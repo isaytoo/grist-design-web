@@ -166,7 +166,7 @@ export function registerCustomBlocks(editor: Editor) {
       <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:40px;">Nos services</h2>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
         <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <div style="height:160px;background:linear-gradient(135deg,#667eea,#764ba2);"></div>
+          <img src="https://placehold.co/600x300/667eea/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
           <div style="padding:24px;">
             <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
             <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
@@ -174,7 +174,7 @@ export function registerCustomBlocks(editor: Editor) {
           </div>
         </div>
         <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <div style="height:160px;background:linear-gradient(135deg,#f093fb,#f5576c);"></div>
+          <img src="https://placehold.co/600x300/f5576c/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
           <div style="padding:24px;">
             <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
             <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
@@ -182,7 +182,7 @@ export function registerCustomBlocks(editor: Editor) {
           </div>
         </div>
         <div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:white;">
-          <div style="height:160px;background:linear-gradient(135deg,#4facfe,#00f2fe);"></div>
+          <img src="https://placehold.co/600x300/4facfe/white?text=Image" alt="Image" style="width:100%;height:180px;object-fit:cover;display:block;" />
           <div style="padding:24px;">
             <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Titre de la carte</h3>
             <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Description courte du service ou de la fonctionnalité proposée.</p>
