@@ -1008,6 +1008,61 @@ export function registerCustomBlocks(editor: Editor) {
   });
   editor.on('component:deselected', closeNavSub);
 
+  // ── Bouton "+▾" : convertit un item de menu simple en menu déroulant ──
+  editor.Commands.add('navbar-to-dropdown', {
+    run(ed: any) {
+      const cmp = ed.getSelected();
+      if (!cmp) return;
+      const parent = cmp.parent();
+      if (!parent) return;
+      const idx = parent.components().indexOf(cmp);
+      const text = ((cmp.getEl()?.textContent || 'Menu').trim()) || 'Menu';
+      const href = cmp.getAttributes().href || '#';
+      let uid = '';
+      let p: any = cmp;
+      while (p) { const u = p.get?.('nav-uid'); if (u) { uid = u; break; } p = p.parent?.(); }
+      if (!uid) return;
+      const html = `<div class="${uid}-dropdown" data-navdrop>
+        <a class="${uid}-link" href="${href}">${text} <span class="${uid}-caret">▾</span></a>
+        <div class="${uid}-sub" data-navsub>
+          <a class="${uid}-sub-link" href="#">Sous-menu 1</a>
+          <a class="${uid}-sub-link" href="#">Sous-menu 2</a>
+        </div>
+      </div>`;
+      const added = parent.components().add(html, { at: idx });
+      cmp.remove();
+      ed.select(Array.isArray(added) ? added[0] : added);
+    },
+  });
+
+  function isConvertibleNavLink(cmp: any): boolean {
+    const el = cmp?.getEl?.() as HTMLElement | undefined;
+    if (!el || el.tagName !== 'A') return false;
+    if (!/-link\b/.test(el.className) || /-cta\b/.test(el.className)) return false;
+    const par = el.parentElement;
+    return !!par && /-menu\b/.test(par.className);
+  }
+
+  editor.on('component:selected', (cmp: any) => {
+    if (!isConvertibleNavLink(cmp)) return;
+    const tb = [...(cmp.get('toolbar') || [])];
+    if (!tb.some((t: any) => t.command === 'navbar-to-dropdown')) {
+      tb.push({
+        attributes: { class: 'gjs-toolbar-item nav-conv-btn', title: 'Transformer en menu déroulant' },
+        command: 'navbar-to-dropdown',
+      });
+      cmp.set('toolbar', tb);
+    }
+  });
+
+  // Icône du bouton (rendu dans le document parent, hors iframe)
+  if (!document.getElementById('nav-conv-style')) {
+    const st = document.createElement('style');
+    st.id = 'nav-conv-style';
+    st.textContent = '.gjs-toolbar-item.nav-conv-btn::before{content:"+\\25BE";font-size:12px;font-weight:700;line-height:1;}';
+    document.head.appendChild(st);
+  }
+
   bm.add('navbar-pro', {
     label: 'Navbar Pro',
     category: 'Navigation',
