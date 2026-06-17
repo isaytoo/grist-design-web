@@ -5,9 +5,17 @@ import { fetchTableData, fetchWritableColumns } from './grist';
 let gristTables: string[] = [];
 let editorRef: Editor | null = null;
 
+// Pour chaque type de bloc Grist : le nom du trait qui contient la TABLE à lister.
+const TABLE_TRAIT_BY_TYPE: Record<string, string> = {
+  'grist-table': 'data-grist-table',
+  'grist-form': 'data-grist-form',
+  'grist-field': 'data-grist-field-table',
+  'grist-cards': 'data-grist-cards-table',
+};
+
 function gristTraitName(cmp: any): string | null {
   const type = cmp?.get?.('type');
-  return type === 'grist-table' ? 'data-grist-table' : (type === 'grist-form' ? 'data-grist-form' : null);
+  return (type && TABLE_TRAIT_BY_TYPE[type]) || null;
 }
 
 function applyTableOptions(cmp: any) {
@@ -16,6 +24,36 @@ function applyTableOptions(cmp: any) {
   if (!traitName) return;
   const trait = cmp.getTrait?.(traitName);
   if (trait) trait.set('options', [{ id: '', name: '— choisir —' }, ...gristTables.map(t => ({ id: t, name: t }))]);
+}
+
+const colOptionsCache: Record<string, { id: string; name: string }[]> = {};
+
+// Peuple un trait "select" avec les colonnes de la table choisie.
+async function populateColTrait(cmp: any, tableAttr: string, colTraitName: string) {
+  const trait = cmp.getTrait?.(colTraitName);
+  if (!trait) return;
+  const table = cmp.getAttributes?.()[tableAttr];
+  if (!table) { trait.set('options', [{ id: '', name: '— choisir —' }]); return; }
+  let opts = colOptionsCache[table];
+  if (!opts) {
+    const data = await fetchTableData(table);
+    opts = data.cols.map(c => ({ id: c, name: c }));
+    colOptionsCache[table] = opts;
+  }
+  trait.set('options', [{ id: '', name: '— choisir —' }, ...opts]);
+}
+
+// Pour un type : (attribut table, [traits colonnes à peupler]).
+const COL_TRAITS_BY_TYPE: Record<string, { tableAttr: string; colTraits: string[] }> = {
+  'grist-field': { tableAttr: 'data-grist-field-table', colTraits: ['data-grist-field-col'] },
+  'grist-cards': { tableAttr: 'data-grist-cards-table', colTraits: ['data-grist-cards-title', 'data-grist-cards-subtitle', 'data-grist-cards-image', 'data-grist-cards-desc'] },
+};
+
+function populateSelectedColTraits(cmp: any) {
+  const type = cmp?.get?.('type');
+  const cfg = type && COL_TRAITS_BY_TYPE[type];
+  if (!cfg) return;
+  cfg.colTraits.forEach((ct: string) => populateColTrait(cmp, cfg.tableAttr, ct));
 }
 
 export function setGristTables(tables: string[]) {
@@ -61,6 +99,8 @@ const ICONS = {
   cardsColor: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="22" x2="17" y2="22"/><line x1="27" y1="22" x2="37" y2="22"/><line x1="47" y1="22" x2="57" y2="22"/><line x1="7" y1="28" x2="14" y2="28"/><line x1="27" y1="28" x2="34" y2="28"/><line x1="47" y1="28" x2="54" y2="28"/><rect x="7" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="27" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="47" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><line x1="7" y1="14" x2="17" y2="14" stroke-dasharray="2,2"/>'),
   gristTable: svgIcon('<rect x="6" y="10" width="52" height="44" rx="3"/><line x1="6" y1="22" x2="58" y2="22"/><line x1="24" y1="10" x2="24" y2="54"/><line x1="41" y1="10" x2="41" y2="54"/><line x1="6" y1="34" x2="58" y2="34"/><line x1="6" y1="44" x2="58" y2="44"/><rect x="6" y="10" width="52" height="12" fill="currentColor" stroke="none" opacity="0.15"/>'),
   gristForm: svgIcon('<rect x="10" y="6" width="44" height="52" rx="3"/><line x1="16" y1="16" x2="34" y2="16"/><rect x="16" y="20" width="32" height="7" rx="2"/><line x1="16" y1="33" x2="34" y2="33"/><rect x="16" y="37" width="32" height="7" rx="2"/><rect x="16" y="48" width="18" height="7" rx="2" fill="currentColor" stroke="none" opacity="0.2"/>'),
+  gristField: svgIcon('<path d="M14 18 h36 M14 18 v8 M50 18 v8" /><rect x="14" y="30" width="24" height="12" rx="2"/><text x="20" y="55" fill="currentColor" stroke="none" font-size="14" font-weight="bold">{ }</text>'),
+  gristCards: svgIcon('<rect x="6" y="10" width="22" height="44" rx="3"/><rect x="36" y="10" width="22" height="44" rx="3"/><rect x="9" y="14" width="16" height="12" rx="2" fill="currentColor" stroke="none" opacity="0.15"/><rect x="39" y="14" width="16" height="12" rx="2" fill="currentColor" stroke="none" opacity="0.15"/><line x1="9" y1="32" x2="25" y2="32"/><line x1="39" y1="32" x2="55" y2="32"/><line x1="9" y1="40" x2="21" y2="40"/><line x1="39" y1="40" x2="51" y2="40"/>'),
 };
 
 // Type d'input HTML déduit du type Grist de la colonne.
@@ -89,6 +129,26 @@ function buildGristFormFields(cols: { colId: string; type: string; label: string
   }).join('');
   const btn = `<button type="submit" style="background:#1d4ed8;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">${escapeHtml(submitLabel || 'Envoyer')}</button>`;
   return fields + btn;
+}
+
+export interface CardsMap { title?: string; subtitle?: string; image?: string; desc?: string; }
+
+// Construit le HTML d'une grille de cartes (aperçu éditeur ET rendu export).
+function buildGristCardsHtml(rows: Record<string, unknown>[], map: CardsMap, cols: number): string {
+  if (!map.title && !map.subtitle && !map.image && !map.desc) {
+    return '<div style="padding:24px;text-align:center;color:#94a3b8;border:2px dashed #cbd5e1;border-radius:8px;">🃏 Cartes Grist — choisissez une table et mappez au moins un champ (panneau de droite).</div>';
+  }
+  const list = rows.length ? rows : [{}];
+  const cards = list.map(r => {
+    const img = map.image && r[map.image] ? `<img src="${escapeHtml(r[map.image])}" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">` : '';
+    const title = map.title ? `<h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;">${escapeHtml(r[map.title] ?? '')}</h3>` : '';
+    const subtitle = map.subtitle ? `<div style="font-size:13px;color:#64748b;margin-bottom:8px;">${escapeHtml(r[map.subtitle] ?? '')}</div>` : '';
+    const desc = map.desc ? `<p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">${escapeHtml(r[map.desc] ?? '')}</p>` : '';
+    return `<div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.06);">${img}<div style="padding:16px;">${title}${subtitle}${desc}</div></div>`;
+  }).join('');
+  const min = cols > 0 ? Math.floor(1000 / cols) : 240;
+  const tmpl = cols > 0 ? `repeat(${cols},1fr)` : `repeat(auto-fill,minmax(${min}px,1fr))`;
+  return `<div style="display:grid;grid-template-columns:${tmpl};gap:16px;">${cards}</div>`;
 }
 
 // Construit le HTML d'un tableau (aperçu éditeur ET rendu export) à partir des données Grist.
@@ -1249,6 +1309,118 @@ export function registerCustomBlocks(editor: Editor) {
     content: { type: 'grist-table' },
   });
 
+  // ===== Bloc dynamique : Champ Grist (insère la valeur d'une colonne — publipostage) =====
+  editor.Components.addType('grist-field', {
+    isComponent: (el: HTMLElement) => el.tagName === 'SPAN' && el.hasAttribute?.('data-grist-field-table'),
+    model: {
+      defaults: {
+        tagName: 'span',
+        name: 'Champ Grist',
+        droppable: false,
+        editable: false,
+        attributes: { 'data-grist-field-table': '', 'data-grist-field-col': '', 'data-grist-field-row': '1' },
+        style: { 'display': 'inline-block' },
+        traits: [
+          { type: 'select', name: 'data-grist-field-table', label: 'Table', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'select', name: 'data-grist-field-col', label: 'Colonne', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'number', name: 'data-grist-field-row', label: 'N° de ligne', min: 1 },
+        ],
+      },
+      init(this: any) {
+        this.on('change:attributes:data-grist-field-table', this.onTableChange);
+        this.on('change:attributes:data-grist-field-col change:attributes:data-grist-field-row', this.refreshField);
+        populateColTrait(this, 'data-grist-field-table', 'data-grist-field-col');
+        this.refreshField();
+      },
+      async onTableChange(this: any) {
+        this.addAttributes({ 'data-grist-field-col': '' });
+        await populateColTrait(this, 'data-grist-field-table', 'data-grist-field-col');
+        this.refreshField();
+      },
+      async refreshField(this: any) {
+        const a: Record<string, string> = this.getAttributes();
+        const table = a['data-grist-field-table'];
+        const col = a['data-grist-field-col'];
+        const rowIdx = Math.max(1, parseInt(a['data-grist-field-row'] || '1', 10) || 1);
+        if (!table || !col) { this.components('{{ champ }}'); lockDescendants(this); return; }
+        const data = await fetchTableData(table);
+        const row = data.rows[rowIdx - 1];
+        const val = row ? row[col] : '';
+        this.components(escapeHtml(val == null || val === '' ? '(vide)' : String(val)));
+        lockDescendants(this);
+      },
+    } as unknown as Record<string, unknown>,
+  });
+
+  bm.add('grist-field-block', {
+    label: 'Champ Grist',
+    category: 'Données Grist',
+    media: ICONS.gristField,
+    content: { type: 'grist-field' },
+  });
+
+  // ===== Bloc dynamique : Cartes Grist (une carte par ligne, colonnes mappées) =====
+  editor.Components.addType('grist-cards', {
+    isComponent: (el: HTMLElement) => el.tagName === 'DIV' && el.hasAttribute?.('data-grist-cards-table'),
+    model: {
+      defaults: {
+        tagName: 'div',
+        name: 'Cartes Grist',
+        droppable: false,
+        editable: false,
+        attributes: {
+          'data-grist-cards-table': '', 'data-grist-cards-title': '', 'data-grist-cards-subtitle': '',
+          'data-grist-cards-image': '', 'data-grist-cards-desc': '', 'data-grist-cards-limit': '12', 'data-grist-cards-cols': '0',
+        },
+        style: { 'margin': '16px 0' },
+        traits: [
+          { type: 'select', name: 'data-grist-cards-table', label: 'Table', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'select', name: 'data-grist-cards-title', label: 'Champ Titre', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'select', name: 'data-grist-cards-subtitle', label: 'Champ Sous-titre', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'select', name: 'data-grist-cards-image', label: 'Champ Image (URL)', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'select', name: 'data-grist-cards-desc', label: 'Champ Description', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'number', name: 'data-grist-cards-limit', label: 'Nb cartes max', min: 0 },
+          { type: 'number', name: 'data-grist-cards-cols', label: 'Colonnes (0 = auto)', min: 0 },
+        ],
+      },
+      init(this: any) {
+        this.on('change:attributes:data-grist-cards-table', this.onTableChange);
+        this.on('change:attributes:data-grist-cards-title change:attributes:data-grist-cards-subtitle change:attributes:data-grist-cards-image change:attributes:data-grist-cards-desc change:attributes:data-grist-cards-limit change:attributes:data-grist-cards-cols', this.refreshCards);
+        populateSelectedColTraits(this);
+        this.refreshCards();
+      },
+      async onTableChange(this: any) {
+        this.addAttributes({ 'data-grist-cards-title': '', 'data-grist-cards-subtitle': '', 'data-grist-cards-image': '', 'data-grist-cards-desc': '' });
+        populateSelectedColTraits(this);
+        this.refreshCards();
+      },
+      async refreshCards(this: any) {
+        const a: Record<string, string> = this.getAttributes();
+        const table = a['data-grist-cards-table'];
+        const map = {
+          title: a['data-grist-cards-title'] || undefined,
+          subtitle: a['data-grist-cards-subtitle'] || undefined,
+          image: a['data-grist-cards-image'] || undefined,
+          desc: a['data-grist-cards-desc'] || undefined,
+        };
+        const limit = parseInt(a['data-grist-cards-limit'] || '0', 10) || 0;
+        const cols = parseInt(a['data-grist-cards-cols'] || '0', 10) || 0;
+        if (!table) { this.components(buildGristCardsHtml([], {}, cols)); lockDescendants(this); return; }
+        const data = await fetchTableData(table);
+        const rows = limit > 0 ? data.rows.slice(0, limit) : data.rows;
+        this.components(buildGristCardsHtml(rows, map, cols));
+        lockDescendants(this);
+      },
+    } as unknown as Record<string, unknown>,
+  });
+
+  bm.add('grist-cards-block', {
+    label: 'Cartes Grist',
+    category: 'Données Grist',
+    media: ICONS.gristCards,
+    content: { type: 'grist-cards' },
+  });
+
   // ===== Bloc dynamique : Formulaire Grist (crée une ligne dans une table) =====
   editor.Components.addType('grist-form', {
     isComponent: (el: HTMLElement) => el.tagName === 'FORM' && el.hasAttribute?.('data-grist-form'),
@@ -1292,7 +1464,7 @@ export function registerCustomBlocks(editor: Editor) {
   // Si l'utilisateur clique sur un descendant de l'aperçu, on re-sélectionne le bloc Grist parent.
   editor.on('component:selected', (cmp: any) => {
     if (!cmp) return;
-    if (gristTraitName(cmp)) { applyTableOptions(cmp); return; }
+    if (gristTraitName(cmp)) { applyTableOptions(cmp); populateSelectedColTraits(cmp); return; }
     let anc = cmp.parent?.();
     while (anc) {
       if (gristTraitName(anc)) { editor.select(anc); return; }

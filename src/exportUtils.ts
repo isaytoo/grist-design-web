@@ -110,7 +110,50 @@ ${js || '// (votre JS personnalisé)'}
     });
   }
 
-  function run() { fillPlaceholders(); renderTables(); bindForms(); }
+  function renderFields() {
+    var els = document.querySelectorAll('[data-grist-field-table]');
+    var cache = {};
+    Array.prototype.forEach.call(els, function (el) {
+      var table = el.getAttribute('data-grist-field-table');
+      var col = el.getAttribute('data-grist-field-col');
+      var rowIdx = parseInt(el.getAttribute('data-grist-field-row') || '1', 10) || 1;
+      if (!table || !col) return;
+      var p = cache[table] || (cache[table] = grist.docApi.fetchTable(table));
+      p.then(function (d) {
+        if (!d || !d[col] || !d[col].length) { el.textContent = ''; return; }
+        var v = d[col][rowIdx - 1];
+        el.textContent = v == null ? '' : '' + v;
+      }).catch(function () {});
+    });
+  }
+
+  function renderCards() {
+    var els = document.querySelectorAll('[data-grist-cards-table]');
+    Array.prototype.forEach.call(els, function (el) {
+      var table = el.getAttribute('data-grist-cards-table'); if (!table) return;
+      var mTitle = el.getAttribute('data-grist-cards-title');
+      var mSub = el.getAttribute('data-grist-cards-subtitle');
+      var mImg = el.getAttribute('data-grist-cards-image');
+      var mDesc = el.getAttribute('data-grist-cards-desc');
+      var limit = parseInt(el.getAttribute('data-grist-cards-limit') || '0', 10) || 0;
+      var ncols = parseInt(el.getAttribute('data-grist-cards-cols') || '0', 10) || 0;
+      grist.docApi.fetchTable(table).then(function (d) {
+        var t = toObjects(d);
+        var rows = limit > 0 ? t.rows.slice(0, limit) : t.rows;
+        var cards = rows.map(function (r) {
+          var img = mImg && r[mImg] ? '<img src="' + esc(r[mImg]) + '" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">' : '';
+          var title = mTitle ? '<h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;">' + esc(r[mTitle]) + '</h3>' : '';
+          var sub = mSub ? '<div style="font-size:13px;color:#64748b;margin-bottom:8px;">' + esc(r[mSub]) + '</div>' : '';
+          var desc = mDesc ? '<p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">' + esc(r[mDesc]) + '</p>' : '';
+          return '<div style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.06);">' + img + '<div style="padding:16px;">' + title + sub + desc + '</div></div>';
+        }).join('');
+        var tmpl = ncols > 0 ? 'repeat(' + ncols + ',1fr)' : 'repeat(auto-fill,minmax(240px,1fr))';
+        el.innerHTML = '<div style="display:grid;grid-template-columns:' + tmpl + ';gap:16px;">' + cards + '</div>';
+      }).catch(function () {});
+    });
+  }
+
+  function run() { fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); }
   if (document.readyState !== 'loading') run(); else document.addEventListener('DOMContentLoaded', run);
 })();
 `;
