@@ -1288,6 +1288,15 @@ export function registerCustomBlocks(editor: Editor) {
     content: { type: 'grist-form' },
   });
 
-  // Renseigne dynamiquement la liste des tables dans le réglage des blocs Grist sélectionnés
-  editor.on('component:selected', (cmp: unknown) => applyTableOptions(cmp));
+  // Renseigne dynamiquement la liste des tables dans le réglage des blocs Grist sélectionnés.
+  // Si l'utilisateur clique sur un descendant de l'aperçu, on re-sélectionne le bloc Grist parent.
+  editor.on('component:selected', (cmp: any) => {
+    if (!cmp) return;
+    if (gristTraitName(cmp)) { applyTableOptions(cmp); return; }
+    let anc = cmp.parent?.();
+    while (anc) {
+      if (gristTraitName(anc)) { editor.select(anc); return; }
+      anc = anc.parent?.();
+    }
+  });
 }
