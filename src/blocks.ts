@@ -3,9 +3,38 @@ import { fetchTableData, fetchWritableColumns } from './grist';
 
 // Liste des tables du document (remplie par App après connexion à Grist) pour le bloc "Tableau Grist".
 let gristTables: string[] = [];
-export function setGristTables(tables: string[]) { gristTables = tables; }
+let editorRef: Editor | null = null;
+
+function gristTraitName(cmp: any): string | null {
+  const type = cmp?.get?.('type');
+  return type === 'grist-table' ? 'data-grist-table' : (type === 'grist-form' ? 'data-grist-form' : null);
+}
+
+function applyTableOptions(cmp: any) {
+  if (!cmp) return;
+  const traitName = gristTraitName(cmp);
+  if (!traitName) return;
+  const trait = cmp.getTrait?.(traitName);
+  if (trait) trait.set('options', [{ id: '', name: '— choisir —' }, ...gristTables.map(t => ({ id: t, name: t }))]);
+}
+
+export function setGristTables(tables: string[]) {
+  gristTables = tables;
+  // Rafraîchit le composant déjà sélectionné (cas où les tables arrivent après la sélection).
+  const selected = editorRef?.getSelected?.();
+  if (selected) applyTableOptions(selected);
+}
 function escapeHtml(s: unknown): string {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+}
+
+// Rend les enfants d'un composant non sélectionnables : un clic sur l'aperçu
+// sélectionne alors le composant parent (Tableau/Formulaire Grist) et ses réglages.
+function lockDescendants(comp: any) {
+  comp.components?.().each?.((c: any) => {
+    c.set({ selectable: false, hoverable: false, draggable: false, droppable: false, editable: false, copyable: false, removable: false, locked: true });
+    lockDescendants(c);
+  });
 }
 
 // SVG icons matching native GrapesJS style (64x64, stroke-based, currentColor)
@@ -77,6 +106,7 @@ function buildGristTableHtml(cols: string[], rows: Record<string, unknown>[], op
 }
 
 export function registerCustomBlocks(editor: Editor) {
+  editorRef = editor;
   const bm = editor.Blocks;
 
   editor.Components.addType('container', {
@@ -1200,13 +1230,14 @@ export function registerCustomBlocks(editor: Editor) {
         const a: Record<string, string> = this.getAttributes();
         const name = a['data-grist-table'];
         const showHeader = a['data-grist-header'] !== '0';
-        if (!name) { this.components(buildGristTableHtml([], [], { showHeader })); return; }
+        if (!name) { this.components(buildGristTableHtml([], [], { showHeader })); lockDescendants(this); return; }
         const limit = parseInt(a['data-grist-limit'] || '50', 10) || 0;
         const wanted = (a['data-grist-cols'] || '').split(',').map(s => s.trim()).filter(Boolean);
         const data = await fetchTableData(name);
         const cols = wanted.length ? wanted.filter(c => data.cols.indexOf(c) !== -1) : data.cols;
         const rows = limit > 0 ? data.rows.slice(0, limit) : data.rows;
         this.components(buildGristTableHtml(cols.length ? cols : data.cols, rows, { showHeader }));
+        lockDescendants(this);
       },
     } as unknown as Record<string, unknown>,
   });
@@ -1242,9 +1273,10 @@ export function registerCustomBlocks(editor: Editor) {
         const a: Record<string, string> = this.getAttributes();
         const name = a['data-grist-form'];
         const submitLabel = a['data-submit-label'] || 'Envoyer';
-        if (!name) { this.components(buildGristFormFields([], submitLabel)); return; }
+        if (!name) { this.components(buildGristFormFields([], submitLabel)); lockDescendants(this); return; }
         const cols = await fetchWritableColumns(name);
         this.components(buildGristFormFields(cols, submitLabel));
+        lockDescendants(this);
       },
     } as unknown as Record<string, unknown>,
   });
@@ -1257,12 +1289,5 @@ export function registerCustomBlocks(editor: Editor) {
   });
 
   // Renseigne dynamiquement la liste des tables dans le réglage des blocs Grist sélectionnés
-  editor.on('component:selected', (cmp: { get?: (k: string) => unknown; getTrait?: (n: string) => { set: (k: string, v: unknown) => void } | undefined }) => {
-    if (!cmp) return;
-    const type = cmp.get?.('type');
-    const traitName = type === 'grist-table' ? 'data-grist-table' : (type === 'grist-form' ? 'data-grist-form' : null);
-    if (!traitName) return;
-    const trait = cmp.getTrait?.(traitName);
-    if (trait) trait.set('options', [{ id: '', name: '— choisir —' }, ...gristTables.map(t => ({ id: t, name: t }))]);
-  });
+  editor.on('component:selected', (cmp: unknown) => applyTableOptions(cmp));
 }
