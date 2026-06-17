@@ -15,12 +15,12 @@ import pluginImageEditor from 'grapesjs-tui-image-editor';
 import pluginStyleBg from 'grapesjs-style-bg';
 import pluginParserPostcss from 'grapesjs-parser-postcss';
 import pluginExport from 'grapesjs-plugin-export';
-import { registerCustomBlocks } from './blocks';
+import { registerCustomBlocks, setGristTables } from './blocks';
 import { registerSectionAdder } from './sectionAdder';
 import { gjsFrench } from './gjsI18n';
 import { downloadZip, getExportData } from './exportUtils';
 import { addImagesAsBase64 } from './assets';
-import { initGrist, ensureTables, loadPages, savePage, deletePage } from './grist';
+import { initGrist, ensureTables, loadPages, savePage, deletePage, listUserTables } from './grist';
 import type { SavedPage } from './grist';
 import { t, setLang, getLang } from './i18n';
 import type { Lang } from './i18n';
@@ -78,7 +78,10 @@ export default function App() {
 
     const ok = await initGrist();
     setInGrist(ok);
-    if (ok) await ensureTables();
+    if (ok) {
+      await ensureTables();
+      setGristTables(await listUserTables());   // alimente le bloc "Tableau Grist"
+    }
   }, []);
 
   const handleSave = async () => {

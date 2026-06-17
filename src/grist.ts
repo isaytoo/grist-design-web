@@ -97,3 +97,39 @@ export async function savePage(name: string, html: string, css: string, js: stri
 export async function deletePage(pageId: number): Promise<void> {
   await grist.docApi.applyUserActions([['RemoveRecord', PAGES_TABLE, pageId]]);
 }
+
+// ---- Liaison données (binding) : lecture des tables du document pour les blocs dynamiques ----
+
+const HIDDEN_TABLES = [PAGES_TABLE, ASSETS_TABLE];
+
+/** Liste des tables du document (hors tables internes du widget). */
+export async function listUserTables(): Promise<string[]> {
+  try {
+    const tables: string[] = await grist.docApi.listTables();
+    return (tables || []).filter(t => HIDDEN_TABLES.indexOf(t) === -1);
+  } catch {
+    return [];
+  }
+}
+
+export interface TableData {
+  cols: string[];
+  rows: Record<string, unknown>[];
+}
+
+/** Récupère les colonnes + lignes d'une table Grist (pour l'aperçu dans l'éditeur). */
+export async function fetchTableData(name: string): Promise<TableData> {
+  try {
+    const d = await grist.docApi.fetchTable(name);
+    if (!d || !d.id) return { cols: [], rows: [] };
+    const cols = Object.keys(d).filter(c => c !== 'id' && c !== 'manualSort');
+    const rows = d.id.map((_: unknown, i: number) => {
+      const o: Record<string, unknown> = {};
+      cols.forEach(c => { o[c] = d[c][i]; });
+      return o;
+    });
+    return { cols, rows };
+  } catch {
+    return { cols: [], rows: [] };
+  }
+}

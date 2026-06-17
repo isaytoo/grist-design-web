@@ -1,4 +1,12 @@
 import type { Editor } from 'grapesjs';
+import { fetchTableData } from './grist';
+
+// Liste des tables du document (remplie par App après connexion à Grist) pour le bloc "Tableau Grist".
+let gristTables: string[] = [];
+export function setGristTables(tables: string[]) { gristTables = tables; }
+function escapeHtml(s: unknown): string {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+}
 
 // SVG icons matching native GrapesJS style (64x64, stroke-based, currentColor)
 const svgIcon = (paths: string) =>
@@ -22,7 +30,22 @@ const ICONS = {
   slider: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M12 32l6-6v12z" fill="currentColor" stroke="none"/><path d="M52 32l-6-6v12z" fill="currentColor" stroke="none"/><circle cx="28" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="32" cy="48" r="2" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="2" fill="currentColor" stroke="none"/>'),
   cardsImg: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="20" x2="17" y2="20"/><line x1="27" y1="20" x2="37" y2="20"/><line x1="47" y1="20" x2="57" y2="20"/><line x1="7" y1="26" x2="14" y2="26"/><line x1="27" y1="26" x2="34" y2="26"/><line x1="47" y1="26" x2="54" y2="26"/><rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="27" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="47" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/>'),
   cardsColor: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="22" x2="17" y2="22"/><line x1="27" y1="22" x2="37" y2="22"/><line x1="47" y1="22" x2="57" y2="22"/><line x1="7" y1="28" x2="14" y2="28"/><line x1="27" y1="28" x2="34" y2="28"/><line x1="47" y1="28" x2="54" y2="28"/><rect x="7" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="27" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="47" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><line x1="7" y1="14" x2="17" y2="14" stroke-dasharray="2,2"/>'),
+  gristTable: svgIcon('<rect x="6" y="10" width="52" height="44" rx="3"/><line x1="6" y1="22" x2="58" y2="22"/><line x1="24" y1="10" x2="24" y2="54"/><line x1="41" y1="10" x2="41" y2="54"/><line x1="6" y1="34" x2="58" y2="34"/><line x1="6" y1="44" x2="58" y2="44"/><rect x="6" y="10" width="52" height="12" fill="currentColor" stroke="none" opacity="0.15"/>'),
 };
+
+// Construit le HTML d'un tableau (aperçu éditeur ET rendu export) à partir des données Grist.
+function buildGristTableHtml(cols: string[], rows: Record<string, unknown>[], opts: { showHeader: boolean }): string {
+  if (!cols.length) {
+    return '<div style="padding:24px;text-align:center;color:#94a3b8;border:2px dashed #cbd5e1;border-radius:8px;">📊 Tableau Grist — choisissez une table dans les réglages (panneau de droite).</div>';
+  }
+  const th = opts.showHeader
+    ? '<thead><tr>' + cols.map(c => `<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #e2e8f0;background:#f8fafc;font-weight:700;font-size:13px;color:#334155;">${escapeHtml(c)}</th>`).join('') + '</tr></thead>'
+    : '';
+  const body = '<tbody>' + (rows.length ? rows : [{}]).map(r =>
+    '<tr>' + cols.map(c => `<td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;">${escapeHtml((r as Record<string, unknown>)[c])}</td>`).join('') + '</tr>'
+  ).join('') + '</tbody>';
+  return `<table style="width:100%;border-collapse:collapse;background:#fff;">${th}${body}</table>`;
+}
 
 export function registerCustomBlocks(editor: Editor) {
   const bm = editor.Blocks;
@@ -1120,5 +1143,56 @@ export function registerCustomBlocks(editor: Editor) {
     category: 'Base',
     media: ICONS.spacer,
     content: '<div style="height:60px;"></div>',
+  });
+
+  // ===== Bloc dynamique : Tableau Grist (lit une table du document) =====
+  editor.Components.addType('grist-table', {
+    isComponent: (el: HTMLElement) => el.tagName === 'DIV' && el.hasAttribute?.('data-grist-table'),
+    model: {
+      defaults: {
+        tagName: 'div',
+        name: 'Tableau Grist',
+        droppable: false,
+        editable: false,
+        attributes: { 'data-grist-table': '', 'data-grist-cols': '', 'data-grist-limit': '50', 'data-grist-header': '1' },
+        style: { 'overflow-x': 'auto', 'margin': '16px 0' },
+        traits: [
+          { type: 'select', name: 'data-grist-table', label: 'Table Grist', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'text', name: 'data-grist-cols', label: 'Colonnes (vide = toutes)', placeholder: 'Col1, Col2' },
+          { type: 'number', name: 'data-grist-limit', label: 'Nb lignes max' },
+          { type: 'checkbox', name: 'data-grist-header', label: 'En-tête', valueTrue: '1', valueFalse: '0' },
+        ],
+      },
+      init(this: any) {
+        this.on('change:attributes:data-grist-table change:attributes:data-grist-cols change:attributes:data-grist-limit change:attributes:data-grist-header', this.refreshPreview);
+        this.refreshPreview();
+      },
+      async refreshPreview(this: any) {
+        const a: Record<string, string> = this.getAttributes();
+        const name = a['data-grist-table'];
+        const showHeader = a['data-grist-header'] !== '0';
+        if (!name) { this.components(buildGristTableHtml([], [], { showHeader })); return; }
+        const limit = parseInt(a['data-grist-limit'] || '50', 10) || 0;
+        const wanted = (a['data-grist-cols'] || '').split(',').map(s => s.trim()).filter(Boolean);
+        const data = await fetchTableData(name);
+        const cols = wanted.length ? wanted.filter(c => data.cols.indexOf(c) !== -1) : data.cols;
+        const rows = limit > 0 ? data.rows.slice(0, limit) : data.rows;
+        this.components(buildGristTableHtml(cols.length ? cols : data.cols, rows, { showHeader }));
+      },
+    } as unknown as Record<string, unknown>,
+  });
+
+  bm.add('grist-table-block', {
+    label: 'Tableau Grist',
+    category: 'Données Grist',
+    media: ICONS.gristTable,
+    content: { type: 'grist-table' },
+  });
+
+  // Renseigne dynamiquement la liste des tables dans le réglage du bloc sélectionné
+  editor.on('component:selected', (cmp: { get?: (k: string) => unknown; getTrait?: (n: string) => { set: (k: string, v: unknown) => void } | undefined }) => {
+    if (!cmp || cmp.get?.('type') !== 'grist-table') return;
+    const trait = cmp.getTrait?.('data-grist-table');
+    if (trait) trait.set('options', [{ id: '', name: '— choisir —' }, ...gristTables.map(t => ({ id: t, name: t }))]);
   });
 }
