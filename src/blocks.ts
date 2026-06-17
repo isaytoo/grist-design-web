@@ -56,11 +56,35 @@ function populateSelectedColTraits(cmp: any) {
   cfg.colTraits.forEach((ct: string) => populateColTrait(cmp, cfg.tableAttr, ct));
 }
 
+// Génère, pour chaque table, une catégorie de blocs "champs" glissables (un par colonne).
+// Glisser un bloc insère un "Champ Grist" déjà lié à Table + Colonne.
+async function buildFieldBlocks() {
+  if (!editorRef) return;
+  const bm = editorRef.Blocks;
+  // Supprime les anciens blocs de champs avant de régénérer.
+  (bm.getAll().filter((b: any) => /^grist-fb-/.test(b.get('id'))) as any[]).forEach((b: any) => bm.remove(b.get('id')));
+  for (const table of gristTables) {
+    const data = await fetchTableData(table);
+    let opts = colOptionsCache[table];
+    if (!opts) { opts = data.cols.map(c => ({ id: c, name: c })); colOptionsCache[table] = opts; }
+    data.cols.forEach((col, i) => {
+      bm.add(`grist-fb-${table}-${col}`, {
+        label: col,
+        category: `Champs : ${table}`,
+        media: ICONS.gristField,
+        attributes: { title: `Insérer ${table}.${col}` },
+        content: { type: 'grist-field', attributes: { 'data-grist-field-table': table, 'data-grist-field-col': col, 'data-grist-field-row': '1' } },
+      } as any, { at: i });
+    });
+  }
+}
+
 export function setGristTables(tables: string[]) {
   gristTables = tables;
   // Rafraîchit le composant déjà sélectionné (cas où les tables arrivent après la sélection).
   const selected = editorRef?.getSelected?.();
   if (selected) applyTableOptions(selected);
+  buildFieldBlocks();
 }
 function escapeHtml(s: unknown): string {
   return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
