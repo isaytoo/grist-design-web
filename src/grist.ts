@@ -117,6 +117,30 @@ export interface TableData {
   rows: Record<string, unknown>[];
 }
 
+export interface ColMeta { colId: string; type: string; label: string; }
+
+/** Colonnes MODIFIABLES d'une table (exclut les colonnes formule) avec leur type — pour le formulaire. */
+export async function fetchWritableColumns(tableName: string): Promise<ColMeta[]> {
+  try {
+    const tbls = await grist.docApi.fetchTable('_grist_Tables');
+    let ref: number | null = null;
+    for (let i = 0; i < tbls.id.length; i++) { if (tbls.tableId[i] === tableName) { ref = tbls.id[i]; break; } }
+    if (ref == null) return [];
+    const cols = await grist.docApi.fetchTable('_grist_Tables_column');
+    const out: ColMeta[] = [];
+    for (let i = 0; i < cols.id.length; i++) {
+      if (cols.parentId[i] !== ref) continue;
+      if (cols.isFormula && cols.isFormula[i]) continue;          // colonne calculée -> non modifiable
+      const colId = cols.colId[i];
+      if (!colId || colId === 'manualSort' || /^gristHelper/.test(colId)) continue;
+      out.push({ colId, type: String(cols.type?.[i] || 'Text'), label: String(cols.label?.[i] || colId) });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /** Récupère les colonnes + lignes d'une table Grist (pour l'aperçu dans l'éditeur). */
 export async function fetchTableData(name: string): Promise<TableData> {
   try {

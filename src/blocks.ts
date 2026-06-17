@@ -1,5 +1,5 @@
 import type { Editor } from 'grapesjs';
-import { fetchTableData } from './grist';
+import { fetchTableData, fetchWritableColumns } from './grist';
 
 // Liste des tables du document (remplie par App après connexion à Grist) pour le bloc "Tableau Grist".
 let gristTables: string[] = [];
@@ -31,7 +31,36 @@ const ICONS = {
   cardsImg: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="20" x2="17" y2="20"/><line x1="27" y1="20" x2="37" y2="20"/><line x1="47" y1="20" x2="57" y2="20"/><line x1="7" y1="26" x2="14" y2="26"/><line x1="27" y1="26" x2="34" y2="26"/><line x1="47" y1="26" x2="54" y2="26"/><rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="27" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/><rect x="47" y="10" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.3"/>'),
   cardsColor: svgIcon('<rect x="4" y="8" width="16" height="24" rx="2"/><rect x="24" y="8" width="16" height="24" rx="2"/><rect x="44" y="8" width="16" height="24" rx="2"/><line x1="7" y1="22" x2="17" y2="22"/><line x1="27" y1="22" x2="37" y2="22"/><line x1="47" y1="22" x2="57" y2="22"/><line x1="7" y1="28" x2="14" y2="28"/><line x1="27" y1="28" x2="34" y2="28"/><line x1="47" y1="28" x2="54" y2="28"/><rect x="7" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="27" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><rect x="47" y="10" width="10" height="8" rx="1" fill="currentColor" stroke="none" opacity="0.15"/><line x1="7" y1="14" x2="17" y2="14" stroke-dasharray="2,2"/>'),
   gristTable: svgIcon('<rect x="6" y="10" width="52" height="44" rx="3"/><line x1="6" y1="22" x2="58" y2="22"/><line x1="24" y1="10" x2="24" y2="54"/><line x1="41" y1="10" x2="41" y2="54"/><line x1="6" y1="34" x2="58" y2="34"/><line x1="6" y1="44" x2="58" y2="44"/><rect x="6" y="10" width="52" height="12" fill="currentColor" stroke="none" opacity="0.15"/>'),
+  gristForm: svgIcon('<rect x="10" y="6" width="44" height="52" rx="3"/><line x1="16" y1="16" x2="34" y2="16"/><rect x="16" y="20" width="32" height="7" rx="2"/><line x1="16" y1="33" x2="34" y2="33"/><rect x="16" y="37" width="32" height="7" rx="2"/><rect x="16" y="48" width="18" height="7" rx="2" fill="currentColor" stroke="none" opacity="0.2"/>'),
 };
+
+// Type d'input HTML déduit du type Grist de la colonne.
+function inputTypeFor(gristType: string): string {
+  const t = (gristType || '').split(':')[0];
+  if (t === 'Numeric' || t === 'Int') return 'number';
+  if (t === 'Bool') return 'checkbox';
+  if (t === 'Date') return 'date';
+  if (t === 'DateTime') return 'datetime-local';
+  return 'text';
+}
+
+// HTML des champs d'un formulaire Grist (aperçu éditeur ET export), généré depuis les colonnes.
+function buildGristFormFields(cols: { colId: string; type: string; label: string }[], submitLabel: string): string {
+  if (!cols.length) {
+    return '<div style="padding:24px;text-align:center;color:#94a3b8;border:2px dashed #cbd5e1;border-radius:8px;">📝 Formulaire Grist — choisissez une table dans les réglages (panneau de droite).</div>';
+  }
+  const fields = cols.map(c => {
+    const itype = inputTypeFor(c.type);
+    const lab = `<label style="display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;">${escapeHtml(c.label)}</label>`;
+    const base = 'width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box;';
+    if (itype === 'checkbox') {
+      return `<div style="margin-bottom:16px;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="${escapeHtml(c.colId)}" style="width:18px;height:18px;"><label style="font-size:13px;font-weight:600;color:#334155;">${escapeHtml(c.label)}</label></div>`;
+    }
+    return `<div style="margin-bottom:16px;">${lab}<input type="${itype}" name="${escapeHtml(c.colId)}" style="${base}"></div>`;
+  }).join('');
+  const btn = `<button type="submit" style="background:#1d4ed8;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">${escapeHtml(submitLabel || 'Envoyer')}</button>`;
+  return fields + btn;
+}
 
 // Construit le HTML d'un tableau (aperçu éditeur ET rendu export) à partir des données Grist.
 function buildGristTableHtml(cols: string[], rows: Record<string, unknown>[], opts: { showHeader: boolean }): string {
@@ -1189,10 +1218,51 @@ export function registerCustomBlocks(editor: Editor) {
     content: { type: 'grist-table' },
   });
 
-  // Renseigne dynamiquement la liste des tables dans le réglage du bloc sélectionné
+  // ===== Bloc dynamique : Formulaire Grist (crée une ligne dans une table) =====
+  editor.Components.addType('grist-form', {
+    isComponent: (el: HTMLElement) => el.tagName === 'FORM' && el.hasAttribute?.('data-grist-form'),
+    model: {
+      defaults: {
+        tagName: 'form',
+        name: 'Formulaire Grist',
+        droppable: false,
+        attributes: { 'data-grist-form': '', 'data-grist-msg': 'Enregistré ✓' },
+        style: { 'max-width': '480px', 'margin': '16px 0', 'padding': '24px', 'background': '#fff', 'border': '1px solid #e2e8f0', 'border-radius': '12px' },
+        traits: [
+          { type: 'select', name: 'data-grist-form', label: 'Table cible', options: [{ id: '', name: '— choisir —' }] },
+          { type: 'text', name: 'data-submit-label', label: 'Texte du bouton', placeholder: 'Envoyer' },
+          { type: 'text', name: 'data-grist-msg', label: 'Message de succès' },
+        ],
+      },
+      init(this: any) {
+        this.on('change:attributes:data-grist-form change:attributes:data-submit-label', this.refreshForm);
+        this.refreshForm();
+      },
+      async refreshForm(this: any) {
+        const a: Record<string, string> = this.getAttributes();
+        const name = a['data-grist-form'];
+        const submitLabel = a['data-submit-label'] || 'Envoyer';
+        if (!name) { this.components(buildGristFormFields([], submitLabel)); return; }
+        const cols = await fetchWritableColumns(name);
+        this.components(buildGristFormFields(cols, submitLabel));
+      },
+    } as unknown as Record<string, unknown>,
+  });
+
+  bm.add('grist-form-block', {
+    label: 'Formulaire Grist',
+    category: 'Données Grist',
+    media: ICONS.gristForm,
+    content: { type: 'grist-form' },
+  });
+
+  // Renseigne dynamiquement la liste des tables dans le réglage des blocs Grist sélectionnés
   editor.on('component:selected', (cmp: { get?: (k: string) => unknown; getTrait?: (n: string) => { set: (k: string, v: unknown) => void } | undefined }) => {
-    if (!cmp || cmp.get?.('type') !== 'grist-table') return;
-    const trait = cmp.getTrait?.('data-grist-table');
+    if (!cmp) return;
+    const type = cmp.get?.('type');
+    const traitName = type === 'grist-table' ? 'data-grist-table' : (type === 'grist-form' ? 'data-grist-form' : null);
+    if (!traitName) return;
+    const trait = cmp.getTrait?.(traitName);
     if (trait) trait.set('options', [{ id: '', name: '— choisir —' }, ...gristTables.map(t => ({ id: t, name: t }))]);
   });
 }

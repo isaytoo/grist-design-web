@@ -92,7 +92,12 @@ ${js || '// (votre JS personnalisé)'}
         var rec = {};
         Array.prototype.forEach.call(f.querySelectorAll('[name]'), function (inp) {
           var n = inp.getAttribute('name'); if (!n) return;
-          rec[n] = (inp.type === 'checkbox') ? inp.checked : inp.value;
+          var v;
+          if (inp.type === 'checkbox') { v = inp.checked; }
+          else if (inp.type === 'number') { v = inp.value === '' ? null : Number(inp.value); }
+          else if (inp.type === 'date' || inp.type === 'datetime-local') { v = inp.value ? Math.floor(new Date(inp.value).getTime() / 1000) : null; }
+          else { v = inp.value; }
+          rec[n] = v;
         });
         grist.docApi.applyUserActions([['AddRecord', table, null, rec]]).then(function () {
           var ok = document.createElement('div');
