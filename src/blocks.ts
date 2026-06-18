@@ -1518,15 +1518,16 @@ export function registerCustomBlocks(editor: Editor) {
         .filter((c: any) => c.get('tagName') !== 'script' && !c.getAttributes?.()['data-ce-ph'])
         .map((c: any) => c.toHTML()).join('');
       const wrap = document.createElement('div');
+      const taStyle = 'width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;background:#ffffff;color:#0f172a;';
       wrap.innerHTML = `
         <div style="display:flex;flex-direction:column;gap:14px;min-width:520px;">
           <div>
-            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">HTML</label>
-            <textarea id="ce-html" spellcheck="false" style="width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;"></textarea>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">HTML</label>
+            <textarea id="ce-html" spellcheck="false" style="${taStyle}"></textarea>
           </div>
           <div>
-            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">JavaScript <span style="font-weight:400;color:#64748b;">(s'exécute sur la page publiée, pas dans l'éditeur)</span></label>
-            <textarea id="ce-js" spellcheck="false" style="width:100%;height:150px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;"></textarea>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">JavaScript <span style="font-weight:400;color:#94a3b8;">(s'exécute sur la page publiée, pas dans l'éditeur)</span></label>
+            <textarea id="ce-js" spellcheck="false" style="${taStyle.replace('height:170px', 'height:150px')}"></textarea>
           </div>
           <div style="text-align:right;"><button id="ce-save" style="background:#1d4ed8;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Enregistrer</button></div>
         </div>`;
