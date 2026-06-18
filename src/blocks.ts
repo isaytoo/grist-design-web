@@ -1491,15 +1491,38 @@ export function registerCustomBlocks(editor: Editor) {
     isComponent: (el: HTMLElement) => el.tagName === 'DIV' && el.classList?.contains('dw-code-embed'),
     model: {
       defaults: {
-        tagName: 'div', name: 'Code HTML + JS', classes: ['dw-code-embed'], droppable: false,
+        tagName: 'div', name: 'Code HTML/CSS + JS', classes: ['dw-code-embed'], droppable: false,
         style: { 'min-height': '40px', margin: '12px 0' },
+        'ce-html': '', 'ce-js': '',   // sources conservées (HTML+CSS / JavaScript) pour ré-édition fidèle
       },
       init(this: any) {
-        if (!this.components().length) this.components(codePlaceholder);
+        const hasSrc = String(this.get('ce-html') || '').trim() || String(this.get('ce-js') || '').trim();
+        if (hasSrc) {
+          this.ceRender();
+        } else {
+          // Chargement d'une page sauvegardée : reconstruire les sources depuis les enfants persistés
+          const kids = this.components();
+          const sc = kids.filter((c: any) => c.get('tagName') === 'script')[0];
+          const js = sc ? (sc.get('content') || '') : '';
+          const htmlCss = kids
+            .filter((c: any) => c.get('tagName') !== 'script' && !c.getAttributes?.()['data-ce-ph'])
+            .map((c: any) => c.toHTML()).join('');
+          if (htmlCss || js) this.set({ 'ce-html': htmlCss, 'ce-js': js }, { silent: true });
+          else if (!kids.length) this.components(codePlaceholder);
+        }
+        this.on('change:ce-html change:ce-js', this.ceRender);
         const tb = this.get('toolbar') || [];
         if (!tb.some((x: any) => x.command === 'open-code-embed')) {
           tb.unshift({ attributes: { title: 'Éditer le code' }, label: '&lt;/&gt;', command: 'open-code-embed' });
           this.set('toolbar', tb);
+        }
+      },
+      ceRender(this: any) {
+        const htmlCss = String(this.get('ce-html') || '');
+        const js = String(this.get('ce-js') || '');
+        this.components(htmlCss.trim() ? htmlCss : codePlaceholder);
+        if (js.trim()) {
+          this.append({ tagName: 'script', attributes: { type: 'text/embed-js' }, content: js, selectable: false, layerable: false, draggable: false, copyable: false, removable: false, hoverable: false });
         }
       },
     } as unknown as Record<string, unknown>,
@@ -1513,43 +1536,36 @@ export function registerCustomBlocks(editor: Editor) {
     run(ed: any, _s: any, opts: any = {}) {
       const target = opts.target || ed.getSelected();
       if (!target || target.get('type') !== 'code-embed') return;
-      const getJs = () => { const s = target.components().filter((c: any) => c.get('tagName') === 'script')[0]; return s ? (s.get('content') || '') : ''; };
-      const getHtml = () => target.components()
-        .filter((c: any) => c.get('tagName') !== 'script' && !c.getAttributes?.()['data-ce-ph'])
-        .map((c: any) => c.toHTML()).join('');
       const wrap = document.createElement('div');
-      const taStyle = 'width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;background:#ffffff;color:#0f172a;';
+      const taStyle = 'width:100%;height:220px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;background:#ffffff;color:#0f172a;';
       wrap.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:14px;min-width:520px;">
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:600px;">
+          <div style="font-size:12px;color:#94a3b8;">Comme le « custom widget builder » de Grist : HTML + CSS d'un côté, JavaScript de l'autre. Collez le code de votre widget existant.</div>
           <div>
-            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">HTML</label>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">HTML / CSS <span style="font-weight:400;color:#94a3b8;">(le CSS peut être dans une balise &lt;style&gt;…&lt;/style&gt;)</span></label>
             <textarea id="ce-html" spellcheck="false" style="${taStyle}"></textarea>
           </div>
           <div>
-            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">JavaScript <span style="font-weight:400;color:#94a3b8;">(s'exécute sur la page publiée, pas dans l'éditeur)</span></label>
-            <textarea id="ce-js" spellcheck="false" style="${taStyle.replace('height:170px', 'height:150px')}"></textarea>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#e2e8f0;">JavaScript <span style="font-weight:400;color:#94a3b8;">(sans la balise &lt;script&gt; ; s'exécute sur la page publiée, pas dans l'éditeur)</span></label>
+            <textarea id="ce-js" spellcheck="false" style="${taStyle.replace('height:220px', 'height:180px')}"></textarea>
           </div>
           <div style="text-align:right;"><button id="ce-save" style="background:#1d4ed8;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Enregistrer</button></div>
         </div>`;
       const taH = wrap.querySelector('#ce-html') as HTMLTextAreaElement;
       const taJ = wrap.querySelector('#ce-js') as HTMLTextAreaElement;
-      taH.value = getHtml();
-      taJ.value = getJs();
+      taH.value = String(target.get('ce-html') || '');
+      taJ.value = String(target.get('ce-js') || '');
       (wrap.querySelector('#ce-save') as HTMLButtonElement).addEventListener('click', () => {
-        const html = taH.value.trim();
-        const js = taJ.value;
-        target.components(html || codePlaceholder);
-        if (js && js.trim()) {
-          target.append({ tagName: 'script', attributes: { type: 'text/embed-js' }, content: js, selectable: false, layerable: false, draggable: false, copyable: false, removable: false, hoverable: false });
-        }
+        target.set('ce-html', taH.value);
+        target.set('ce-js', taJ.value);
         ed.Modal.close();
       });
-      ed.Modal.open({ title: 'Code HTML + JavaScript', content: wrap });
+      ed.Modal.open({ title: 'Code HTML/CSS + JavaScript', content: wrap });
     },
   });
 
   bm.add('code-embed-block', {
-    label: 'Code HTML + JS',
+    label: 'Code HTML/CSS + JS',
     category: 'Extra',
     media: ICONS.code,
     content: { type: 'code-embed' },

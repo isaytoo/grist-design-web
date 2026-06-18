@@ -153,10 +153,14 @@ ${js || '// (votre JS personnalisé)'}
     });
   }
 
-  // Bloc "Code HTML + JS" : exécute le JavaScript embarqué (non exécuté dans l'éditeur)
+  // Bloc "Code HTML + JS" : exécute le JavaScript embarqué EN PORTÉE GLOBALE
+  // (une vraie balise <script> -> les fonctions deviennent globales, donc les
+  //  gestionnaires inline type onclick="maFonction()" fonctionnent).
   function runEmbeds() {
     Array.prototype.forEach.call(document.querySelectorAll('script[type="text/embed-js"]'), function (s) {
-      try { new Function(s.textContent || '')(); } catch (e) { console.error('[Code HTML+JS]', e); }
+      var sc = document.createElement('script');
+      sc.textContent = s.textContent || '';
+      document.body.appendChild(sc);
     });
   }
 
