@@ -177,6 +177,17 @@ function buildGristCardsHtml(rows: Record<string, unknown>[], map: CardsMap, col
 }
 
 // Construit le HTML d'un tableau (aperçu éditeur ET rendu export) à partir des données Grist.
+// Valeur image (URL ou data-URI) -> rend une vignette ; sinon texte. (Aperçu éditeur ; les
+// pièces jointes Grist sont résolues à l'export via le jeton d'accès.)
+function isImgUrlVal(v: unknown): boolean {
+  return typeof v === 'string' && (/^data:image\//i.test(v) || (/^https?:\/\//i.test(v) && /\.(png|jpe?g|gif|webp|svg|avif|bmp)(\?|#|$)/i.test(v)));
+}
+function cellPreview(v: unknown): string {
+  if (isImgUrlVal(v)) return `<img src="${escapeHtml(v)}" alt="" style="height:44px;width:auto;max-width:120px;object-fit:cover;border-radius:4px;display:block;">`;
+  if (Array.isArray(v) && v.some(x => typeof x === 'number')) return '🖼️ (pièce jointe)';
+  return escapeHtml(v);
+}
+
 function buildGristTableHtml(cols: string[], rows: Record<string, unknown>[], opts: { showHeader: boolean }): string {
   if (!cols.length) {
     return '<div style="padding:24px;text-align:center;color:#94a3b8;border:2px dashed #cbd5e1;border-radius:8px;">📊 Tableau Grist — choisissez une table dans les réglages (panneau de droite).</div>';
@@ -185,7 +196,7 @@ function buildGristTableHtml(cols: string[], rows: Record<string, unknown>[], op
     ? '<thead><tr>' + cols.map(c => `<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #e2e8f0;background:#f8fafc;font-weight:700;font-size:13px;color:#334155;">${escapeHtml(c)}</th>`).join('') + '</tr></thead>'
     : '';
   const body = '<tbody>' + (rows.length ? rows : [{}]).map(r =>
-    '<tr>' + cols.map(c => `<td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;">${escapeHtml((r as Record<string, unknown>)[c])}</td>`).join('') + '</tr>'
+    '<tr>' + cols.map(c => `<td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;">${cellPreview((r as Record<string, unknown>)[c])}</td>`).join('') + '</tr>'
   ).join('') + '</tbody>';
   return `<table style="width:100%;border-collapse:collapse;background:#fff;">${th}${body}</table>`;
 }

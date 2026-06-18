@@ -45,6 +45,27 @@ ${js || '// (votre JS personnalisé)'}
     return { cols: cols, rows: rows };
   }
 
+  // ---- Images : URL/data-URI dans une colonne texte, ou colonne "Pièces jointes" Grist ----
+  var GTOK = null;                         // jeton d'accès (pour les pièces jointes)
+  function getToken() {
+    if (typeof grist.docApi.getAccessToken !== 'function') return Promise.resolve(null);
+    return grist.docApi.getAccessToken({ readOnly: true }).then(function (t) { GTOK = t; return t; }).catch(function () { return null; });
+  }
+  function attIds(v) { return Array.isArray(v) ? v.filter(function (x) { return typeof x === 'number'; }) : []; }
+  function isImgUrl(v) { return typeof v === 'string' && (/^data:image\//i.test(v) || (/^https?:\/\//i.test(v) && /\.(png|jpe?g|gif|webp|svg|avif|bmp)(\?|#|$)/i.test(v))); }
+  function imgSrc(v) {
+    var ids = attIds(v);
+    if (ids.length && GTOK) return GTOK.baseUrl + '/attachments/' + ids[0] + '/download?auth=' + GTOK.token;
+    if (isImgUrl(v)) return v;
+    return '';
+  }
+  // Rendu d'une cellule : image si la valeur est une image (URL/pièce jointe), sinon texte.
+  function cellHtml(v, h) {
+    var src = imgSrc(v);
+    if (src) return '<img src="' + esc(src) + '" alt="" style="height:' + (h || 44) + 'px;width:auto;max-width:120px;object-fit:cover;border-radius:4px;display:block;">';
+    return esc(v);
+  }
+
   function renderTables() {
     var els = document.querySelectorAll('[data-grist-table]');
     Array.prototype.forEach.call(els, function (el) {
@@ -58,7 +79,7 @@ ${js || '// (votre JS personnalisé)'}
         var rows = limit > 0 ? t.rows.slice(0, limit) : t.rows;
         var showHead = el.getAttribute('data-grist-header') !== '0';
         var th = showHead ? '<thead><tr>' + cols.map(function (c) { return '<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #e2e8f0;background:#f8fafc;font-weight:700;font-size:13px;color:#334155;">' + esc(c) + '</th>'; }).join('') + '</tr></thead>' : '';
-        var body = '<tbody>' + rows.map(function (r) { return '<tr>' + cols.map(function (c) { return '<td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;">' + esc(r[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+        var body = '<tbody>' + rows.map(function (r) { return '<tr>' + cols.map(function (c) { return '<td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;">' + cellHtml(r[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
         el.innerHTML = '<table style="width:100%;border-collapse:collapse;background:#fff;">' + th + body + '</table>';
       }).catch(function () {});
     });
@@ -122,7 +143,9 @@ ${js || '// (votre JS personnalisé)'}
       p.then(function (d) {
         if (!d || !d[col] || !d[col].length) { el.textContent = ''; return; }
         var v = d[col][rowIdx - 1];
-        el.textContent = v == null ? '' : '' + v;
+        var src = imgSrc(v);
+        if (src) { el.innerHTML = '<img src="' + esc(src) + '" alt="" style="max-width:100%;height:auto;display:block;border-radius:6px;">'; }
+        else { el.textContent = v == null ? '' : '' + v; }
       }).catch(function () {});
     });
   }
@@ -141,7 +164,8 @@ ${js || '// (votre JS personnalisé)'}
         var t = toObjects(d);
         var rows = limit > 0 ? t.rows.slice(0, limit) : t.rows;
         var cards = rows.map(function (r) {
-          var img = mImg && r[mImg] ? '<img src="' + esc(r[mImg]) + '" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">' : '';
+          var imgU = mImg ? imgSrc(r[mImg]) : '';
+          var img = imgU ? '<img src="' + esc(imgU) + '" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">' : '';
           var title = mTitle ? '<h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;">' + esc(r[mTitle]) + '</h3>' : '';
           var sub = mSub ? '<div style="font-size:13px;color:#64748b;margin-bottom:8px;">' + esc(r[mSub]) + '</div>' : '';
           var desc = mDesc ? '<p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">' + esc(r[mDesc]) + '</p>' : '';
@@ -173,7 +197,13 @@ ${js || '// (votre JS personnalisé)'}
   }
 
   var _ran = false;
-  function run() { if (_ran) return; _ran = true; fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); runEmbeds(); }
+  function run() {
+    if (_ran) return; _ran = true;
+    // On récupère d'abord le jeton (pour les images en pièces jointes), puis on rend tout.
+    getToken().then(function () {
+      fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); runEmbeds();
+    });
+  }
   if (document.readyState !== 'loading') run(); else document.addEventListener('DOMContentLoaded', run);
 })();
 `;
