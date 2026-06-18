@@ -154,17 +154,26 @@ ${js || '// (votre JS personnalisé)'}
   }
 
   // Bloc "Code HTML + JS" : exécute le JavaScript embarqué EN PORTÉE GLOBALE
-  // (une vraie balise <script> -> les fonctions deviennent globales, donc les
-  //  gestionnaires inline type onclick="maFonction()" fonctionnent).
+  // (vraie balise <script> -> fonctions globales, donc les onclick="maFonction()" marchent).
   function runEmbeds() {
-    Array.prototype.forEach.call(document.querySelectorAll('script[type="text/embed-js"]'), function (s) {
+    var list = document.querySelectorAll('script[type="text/embed-js"]');
+    if (!list.length) return;
+    Array.prototype.forEach.call(list, function (s) {
       var sc = document.createElement('script');
       sc.textContent = s.textContent || '';
       document.body.appendChild(sc);
     });
+    // Beaucoup de scripts s'initialisent sur DOMContentLoaded / load (déjà passés ici) :
+    // on re-déclenche ces évènements pour que leurs handlers s'exécutent (ex. calcul de taille).
+    setTimeout(function () {
+      try { document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true })); } catch (e) {}
+      try { window.dispatchEvent(new Event('load')); } catch (e) {}
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }, 0);
   }
 
-  function run() { fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); runEmbeds(); }
+  var _ran = false;
+  function run() { if (_ran) return; _ran = true; fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); runEmbeds(); }
   if (document.readyState !== 'loading') run(); else document.addEventListener('DOMContentLoaded', run);
 })();
 `;
