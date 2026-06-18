@@ -125,6 +125,7 @@ const ICONS = {
   gristForm: svgIcon('<rect x="10" y="6" width="44" height="52" rx="3"/><line x1="16" y1="16" x2="34" y2="16"/><rect x="16" y="20" width="32" height="7" rx="2"/><line x1="16" y1="33" x2="34" y2="33"/><rect x="16" y="37" width="32" height="7" rx="2"/><rect x="16" y="48" width="18" height="7" rx="2" fill="currentColor" stroke="none" opacity="0.2"/>'),
   gristField: svgIcon('<path d="M14 18 h36 M14 18 v8 M50 18 v8" /><rect x="14" y="30" width="24" height="12" rx="2"/><text x="20" y="55" fill="currentColor" stroke="none" font-size="14" font-weight="bold">{ }</text>'),
   gristCards: svgIcon('<rect x="6" y="10" width="22" height="44" rx="3"/><rect x="36" y="10" width="22" height="44" rx="3"/><rect x="9" y="14" width="16" height="12" rx="2" fill="currentColor" stroke="none" opacity="0.15"/><rect x="39" y="14" width="16" height="12" rx="2" fill="currentColor" stroke="none" opacity="0.15"/><line x1="9" y1="32" x2="25" y2="32"/><line x1="39" y1="32" x2="55" y2="32"/><line x1="9" y1="40" x2="21" y2="40"/><line x1="39" y1="40" x2="51" y2="40"/>'),
+  code: svgIcon('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M24 26l-8 6 8 6"/><path d="M40 26l8 6-8 6"/><line x1="35" y1="22" x2="29" y2="42"/>'),
 };
 
 // Type d'input HTML déduit du type Grist de la colonne.
@@ -1482,6 +1483,75 @@ export function registerCustomBlocks(editor: Editor) {
     category: 'Données Grist',
     media: ICONS.gristForm,
     content: { type: 'grist-form' },
+  });
+
+  // ===== Bloc « Code HTML + JS » (2 zones séparées, sans coder dans un éditeur unique) =====
+  const codePlaceholder = '<div data-ce-ph="1" style="padding:18px;color:#94a3b8;border:2px dashed #cbd5e1;border-radius:8px;text-align:center;font-family:sans-serif;">&lt;/&gt; Code HTML + JS — double-cliquez pour éditer</div>';
+  editor.Components.addType('code-embed', {
+    isComponent: (el: HTMLElement) => el.tagName === 'DIV' && el.classList?.contains('dw-code-embed'),
+    model: {
+      defaults: {
+        tagName: 'div', name: 'Code HTML + JS', classes: ['dw-code-embed'], droppable: false,
+        style: { 'min-height': '40px', margin: '12px 0' },
+      },
+      init(this: any) {
+        if (!this.components().length) this.components(codePlaceholder);
+        const tb = this.get('toolbar') || [];
+        if (!tb.some((x: any) => x.command === 'open-code-embed')) {
+          tb.unshift({ attributes: { title: 'Éditer le code' }, label: '&lt;/&gt;', command: 'open-code-embed' });
+          this.set('toolbar', tb);
+        }
+      },
+    } as unknown as Record<string, unknown>,
+    view: {
+      events: { dblclick: 'onCeEdit' },
+      onCeEdit(this: any) { editor.runCommand('open-code-embed', { target: this.model }); },
+    } as unknown as Record<string, unknown>,
+  });
+
+  editor.Commands.add('open-code-embed', {
+    run(ed: any, _s: any, opts: any = {}) {
+      const target = opts.target || ed.getSelected();
+      if (!target || target.get('type') !== 'code-embed') return;
+      const getJs = () => { const s = target.components().filter((c: any) => c.get('tagName') === 'script')[0]; return s ? (s.get('content') || '') : ''; };
+      const getHtml = () => target.components()
+        .filter((c: any) => c.get('tagName') !== 'script' && !c.getAttributes?.()['data-ce-ph'])
+        .map((c: any) => c.toHTML()).join('');
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:520px;">
+          <div>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">HTML</label>
+            <textarea id="ce-html" spellcheck="false" style="width:100%;height:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;"></textarea>
+          </div>
+          <div>
+            <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">JavaScript <span style="font-weight:400;color:#64748b;">(s'exécute sur la page publiée, pas dans l'éditeur)</span></label>
+            <textarea id="ce-js" spellcheck="false" style="width:100%;height:150px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box;resize:vertical;"></textarea>
+          </div>
+          <div style="text-align:right;"><button id="ce-save" style="background:#1d4ed8;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Enregistrer</button></div>
+        </div>`;
+      const taH = wrap.querySelector('#ce-html') as HTMLTextAreaElement;
+      const taJ = wrap.querySelector('#ce-js') as HTMLTextAreaElement;
+      taH.value = getHtml();
+      taJ.value = getJs();
+      (wrap.querySelector('#ce-save') as HTMLButtonElement).addEventListener('click', () => {
+        const html = taH.value.trim();
+        const js = taJ.value;
+        target.components(html || codePlaceholder);
+        if (js && js.trim()) {
+          target.append({ tagName: 'script', attributes: { type: 'text/embed-js' }, content: js, selectable: false, layerable: false, draggable: false, copyable: false, removable: false, hoverable: false });
+        }
+        ed.Modal.close();
+      });
+      ed.Modal.open({ title: 'Code HTML + JavaScript', content: wrap });
+    },
+  });
+
+  bm.add('code-embed-block', {
+    label: 'Code HTML + JS',
+    category: 'Extra',
+    media: ICONS.code,
+    content: { type: 'code-embed' },
   });
 
   // Renseigne dynamiquement la liste des tables dans le réglage des blocs Grist sélectionnés.

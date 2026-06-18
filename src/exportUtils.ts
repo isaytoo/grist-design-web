@@ -153,7 +153,14 @@ ${js || '// (votre JS personnalisé)'}
     });
   }
 
-  function run() { fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); }
+  // Bloc "Code HTML + JS" : exécute le JavaScript embarqué (non exécuté dans l'éditeur)
+  function runEmbeds() {
+    Array.prototype.forEach.call(document.querySelectorAll('script[type="text/embed-js"]'), function (s) {
+      try { new Function(s.textContent || '')(); } catch (e) { console.error('[Code HTML+JS]', e); }
+    });
+  }
+
+  function run() { fillPlaceholders(); renderTables(); renderFields(); renderCards(); bindForms(); runEmbeds(); }
   if (document.readyState !== 'loading') run(); else document.addEventListener('DOMContentLoaded', run);
 })();
 `;
