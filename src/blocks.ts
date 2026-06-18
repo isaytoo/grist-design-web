@@ -1525,6 +1525,14 @@ export function registerCustomBlocks(editor: Editor) {
           this.append({ tagName: 'script', attributes: { type: 'text/embed-js' }, content: js, selectable: false, layerable: false, draggable: false, copyable: false, removable: false, hoverable: false });
         }
       },
+      // Export VERBATIM : on ressort le HTML/CSS collé tel quel (GrapesJS ne le réinterprète pas,
+      // donc le <style> et les règles type .square.light restent intactes) + le JS en script différé.
+      toHTML(this: any) {
+        const htmlCss = String(this.get('ce-html') || '');
+        const js = String(this.get('ce-js') || '');
+        const script = js.trim() ? '<script type="text/embed-js">' + js + '<' + '/script>' : '';
+        return '<div class="dw-code-embed">' + (htmlCss.trim() ? htmlCss : '') + script + '</div>';
+      },
     } as unknown as Record<string, unknown>,
     view: {
       events: { dblclick: 'onCeEdit' },
