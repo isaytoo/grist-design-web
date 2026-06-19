@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import grapesjs from 'grapesjs';
 import type { Editor } from 'grapesjs';
 import GjsEditor from '@grapesjs/react';
@@ -35,6 +35,12 @@ export default function App() {
   const [showPagesModal, setShowPagesModal] = useState(false);
   const [savedPages, setSavedPages] = useState<SavedPage[]>([]);
   const [inGrist, setInGrist] = useState(false);
+
+  // Refs synchronisés (pour l'auto-brouillon, dont le listener est figé dans onEditor)
+  const pageNameRef = useRef(pageName);
+  const currentPageIdRef = useRef(currentPageId);
+  useEffect(() => { pageNameRef.current = pageName; }, [pageName]);
+  useEffect(() => { currentPageIdRef.current = currentPageId; }, [currentPageId]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -82,6 +88,38 @@ export default function App() {
       await ensureTables();
       setGristTables(await listUserTables());   // alimente le bloc "Tableau Grist"
     }
+
+    // --- Auto-brouillon : survit au rechargement de l'iframe (changement de page Grist) ---
+    const DRAFT_KEY = 'dw-draft';
+    let draftTimer: number | undefined;
+    const saveDraft = () => {
+      clearTimeout(draftTimer);
+      draftTimer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            gjs: editor.getProjectData(),
+            pageName: pageNameRef.current,
+            pageId: currentPageIdRef.current,
+            ts: Date.now(),
+          }));
+        } catch { /* quota dépassé (ex. trop d'images base64) -> on ignore */ }
+      }, 800);
+    };
+    editor.on('component:add component:remove component:update component:input style:property:update canvas:drop rte:disable', saveDraft);
+
+    // Restauration du dernier brouillon (le widget repart de zéro après rechargement)
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && d.gjs && d.gjs.pages) {
+          editor.loadProjectData(d.gjs);
+          if (d.pageName) setPageName(d.pageName);
+          if (typeof d.pageId === 'number') setCurrentPageId(d.pageId);
+          showToast('Brouillon restauré ✓');
+        }
+      }
+    } catch { /* brouillon illisible -> on ignore */ }
   }, []);
 
   const handleSave = async () => {
