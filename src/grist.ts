@@ -117,6 +117,20 @@ export interface TableData {
   rows: Record<string, unknown>[];
 }
 
+// Jeton d'accès (lecture seule) pour afficher les pièces jointes dans l'APERÇU éditeur. Mis en cache.
+let _tokenP: Promise<{ baseUrl: string; token: string } | null> | null = null;
+export function getGristToken(): Promise<{ baseUrl: string; token: string } | null> {
+  if (!_tokenP) {
+    _tokenP = (async () => {
+      try {
+        if (typeof grist.docApi.getAccessToken !== 'function') return null;
+        return await grist.docApi.getAccessToken({ readOnly: true });
+      } catch { return null; }
+    })();
+  }
+  return _tokenP;
+}
+
 export interface ColMeta { colId: string; type: string; label: string; }
 
 /** Colonnes MODIFIABLES d'une table (exclut les colonnes formule) avec leur type — pour le formulaire. */

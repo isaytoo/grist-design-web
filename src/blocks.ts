@@ -1,5 +1,15 @@
 import type { Editor } from 'grapesjs';
-import { fetchTableData, fetchWritableColumns } from './grist';
+import { fetchTableData, fetchWritableColumns, getGristToken } from './grist';
+
+// Jeton d'accès (cache) pour résoudre les pièces jointes dans l'aperçu éditeur.
+let gristTok: { baseUrl: string; token: string } | null = null;
+async function ensureTok() { gristTok = await getGristToken(); }
+// URL d'image depuis une valeur de cellule : URL/data-URI directe, ou pièce jointe (via jeton).
+function imgFromVal(v: unknown): string {
+  if (typeof v === 'string' && (/^data:image\//i.test(v) || (/^https?:\/\//i.test(v) && /\.(png|jpe?g|gif|webp|svg|avif|bmp)(\?|#|$)/i.test(v)))) return v;
+  if (Array.isArray(v) && gristTok) { const id = v.find(x => typeof x === 'number'); if (id != null) return gristTok.baseUrl + '/attachments/' + id + '/download?auth=' + gristTok.token; }
+  return '';
+}
 
 // Liste des tables du document (remplie par App après connexion à Grist) pour le bloc "Tableau Grist".
 let gristTables: string[] = [];
@@ -165,7 +175,8 @@ function buildGristCardsHtml(rows: Record<string, unknown>[], map: CardsMap, col
   }
   const list = rows.length ? rows : [{}];
   const cards = list.map(r => {
-    const img = map.image && r[map.image] ? `<img src="${escapeHtml(r[map.image])}" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">` : '';
+    const imgU = map.image ? imgFromVal(r[map.image]) : '';
+    const img = imgU ? `<img src="${escapeHtml(imgU)}" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#f1f5f9;">` : '';
     const title = map.title ? `<h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;">${escapeHtml(r[map.title] ?? '')}</h3>` : '';
     const subtitle = map.subtitle ? `<div style="font-size:13px;color:#64748b;margin-bottom:8px;">${escapeHtml(r[map.subtitle] ?? '')}</div>` : '';
     const desc = map.desc ? `<p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">${escapeHtml(r[map.desc] ?? '')}</p>` : '';
@@ -183,8 +194,9 @@ function isImgUrlVal(v: unknown): boolean {
   return typeof v === 'string' && (/^data:image\//i.test(v) || (/^https?:\/\//i.test(v) && /\.(png|jpe?g|gif|webp|svg|avif|bmp)(\?|#|$)/i.test(v)));
 }
 function cellPreview(v: unknown): string {
-  if (isImgUrlVal(v)) return `<img src="${escapeHtml(v)}" alt="" style="height:44px;width:auto;max-width:120px;object-fit:cover;border-radius:4px;display:block;">`;
-  if (Array.isArray(v) && v.some(x => typeof x === 'number')) return '🖼️ (pièce jointe)';
+  const src = imgFromVal(v);
+  if (src) return `<img src="${escapeHtml(src)}" alt="" style="height:44px;width:auto;max-width:120px;object-fit:cover;border-radius:4px;display:block;">`;
+  if (Array.isArray(v) && v.some(x => typeof x === 'number')) return '🖼️ (pièce jointe)';  // jeton indispo
   return escapeHtml(v);
 }
 
@@ -1329,6 +1341,7 @@ export function registerCustomBlocks(editor: Editor) {
         if (!name) { this.components(buildGristTableHtml([], [], { showHeader })); lockDescendants(this); return; }
         const limit = parseInt(a['data-grist-limit'] || '50', 10) || 0;
         const wanted = (a['data-grist-cols'] || '').split(',').map(s => s.trim()).filter(Boolean);
+        await ensureTok();
         const data = await fetchTableData(name);
         const cols = wanted.length ? wanted.filter(c => data.cols.indexOf(c) !== -1) : data.cols;
         const rows = limit > 0 ? data.rows.slice(0, limit) : data.rows;
@@ -1379,10 +1392,13 @@ export function registerCustomBlocks(editor: Editor) {
         const col = a['data-grist-field-col'];
         const rowIdx = Math.max(1, parseInt(a['data-grist-field-row'] || '1', 10) || 1);
         if (!table || !col) { this.components('{{ champ }}'); lockDescendants(this); return; }
+        await ensureTok();
         const data = await fetchTableData(table);
         const row = data.rows[rowIdx - 1];
         const val = row ? row[col] : '';
-        this.components(escapeHtml(val == null || val === '' ? '(vide)' : String(val)));
+        const src = imgFromVal(val);
+        if (src) this.components(`<img src="${escapeHtml(src)}" alt="" style="max-width:100%;height:auto;display:block;border-radius:6px;">`);
+        else this.components(escapeHtml(val == null || val === '' ? '(vide)' : String(val)));
         lockDescendants(this);
       },
     } as unknown as Record<string, unknown>,
@@ -1442,6 +1458,7 @@ export function registerCustomBlocks(editor: Editor) {
         const limit = parseInt(a['data-grist-cards-limit'] || '0', 10) || 0;
         const cols = parseInt(a['data-grist-cards-cols'] || '0', 10) || 0;
         if (!table) { this.components(buildGristCardsHtml([], {}, cols)); lockDescendants(this); return; }
+        await ensureTok();
         const data = await fetchTableData(table);
         const rows = limit > 0 ? data.rows.slice(0, limit) : data.rows;
         this.components(buildGristCardsHtml(rows, map, cols));
