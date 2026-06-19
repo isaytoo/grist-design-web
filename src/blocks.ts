@@ -188,11 +188,7 @@ function buildGristCardsHtml(rows: Record<string, unknown>[], map: CardsMap, col
 }
 
 // Construit le HTML d'un tableau (aperçu éditeur ET rendu export) à partir des données Grist.
-// Valeur image (URL ou data-URI) -> rend une vignette ; sinon texte. (Aperçu éditeur ; les
-// pièces jointes Grist sont résolues à l'export via le jeton d'accès.)
-function isImgUrlVal(v: unknown): boolean {
-  return typeof v === 'string' && (/^data:image\//i.test(v) || (/^https?:\/\//i.test(v) && /\.(png|jpe?g|gif|webp|svg|avif|bmp)(\?|#|$)/i.test(v)));
-}
+// Valeur image (URL/data-URI ou pièce jointe) -> rend une vignette ; sinon texte.
 function cellPreview(v: unknown): string {
   const src = imgFromVal(v);
   if (src) return `<img src="${escapeHtml(src)}" alt="" style="height:44px;width:auto;max-width:120px;object-fit:cover;border-radius:4px;display:block;">`;
